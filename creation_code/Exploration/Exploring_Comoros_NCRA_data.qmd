@@ -1,0 +1,776 @@
+---
+title: "Exploring Comoros NCRA Benthic Data"
+author: "Swaleh Aboud"
+date: "`r Sys.Date()`"
+format:
+  html: 
+    number-sections: true
+    toc: true
+    fig-cap: true
+editor: visual
+---
+
+## About the Document
+
+This document provides an exploration of the benthic dataset for Comoros, aimed at gaining a deeper understanding of the available data. It highlights key aspects of the dataset, including trends, gaps, and overall quality, while visualizing the benthic data of the country. Additionally, the document explores potential objectives and analyses that could complement the Comoros National Coral Reef Assessment (NCRA), serving as a foundational guide for further data exploration and analytical approaches.
+
+Outlined below are the steps undertaken in this exploration process:
+
+-   Data folders
+-   Import dataset
+-   Trend graphs
+-   Spatial distribution of data
+-   Initial vs current values Comparisons
+
+## Data and Folders
+
+The working directory for this project is currently hosted in a private repository to facilitate collaboration with an external contributor, Franzinho Smith. Once significant progress has been achieved, the project will be transitioned to the Organizational repository for broader access. The dataset utilized for this analysis is available and can be accessed in the CORDIO GitHub repository at the following path: `Ecological-Research-Data-Analysis/1. Data processing/Comoros/1. National_data/All_years/3. Summarise`.
+
+```{r}
+#| echo: false
+#| include: false
+
+# Setting working directory
+getwd()
+
+# Required Packages
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(patchwork) # For combining plots
+library(sf)        # For spatial data handling
+library(kableExtra)
+library(knitr)
+library(tidyr)
+
+
+```
+
+## Datasets
+
+-   **Initial Data**: The regional dataset was utilized due to the limited number of data points for hard coral in Comoros, with only seven points available, four of which were from Moheli. The references for these points include Quod and Bigot (2000) and Ahmada et al. (2002). No initial data was available for algae.
+
+-   **Current Data**: This refers to the data collected from 2015 to 2024, aligned with the current values used for the Kenya and Tanzania NCRA.
+
+-   **Complete Data:** This refers to the whole dataset for Comoros at level_1 spanning all years, with a focus on hard coral and algae groups.
+
+-   **Comoros Shapefile**: The shapefile was obtained from Nature Earth Data, accessible via the following link: [Nature Earth Data](https://www.naturalearthdata.com/downloads/10m-cultural-vectors/10m-admin-0-details/).
+
+-   **Reef Layer Shapefile:** The reef layer data was obtained from the MEOW dataset, which was downloaded from the WWF website at the following link: [Marine Ecoregions of the World](https://www.worldwildlife.org/publications/marine-ecoregions-of-the-world-a-bioregionalization-of-coastal-and-shelf-areas)
+
+```{r}
+#| echo: false
+#| include: false
+
+# Import dataset
+load("../../data_intermediate/Current_regional_ALG.RDA") # current ALG
+load("../../data_intermediate/Initial_regional_ALG.RDA") # Initial ALG
+load("../../data_intermediate/Current_regional_HC.RDA") # Current HC
+load("../../data_intermediate/Initial_regional_HC.RDA") # Current ALG
+load("../../data_intermediate/Complete_comoros_data.RDA") # Complete dataset
+comoros_map <- st_read("../../data_raw/spatial/ne_10m_admin_0_map_units.shp")
+comoros_region <- comoros_map %>%
+  filter(NAME == "Comoros")
+reef_areas <- st_read("../../data_raw/spatial/meow_ecos.shp")
+```
+
+## Trend Graphs
+
+**Natioanl Trend**
+
+-   The default `geom_smooth()` method was used to allow the trend line to adapt naturally to the data, ensuring accurate trend representation.
+-   Algae group were provided at different names including Algae, Macroalgae and Turf algae. The category Macro-algae and Algae was used and standardised to Macro-algae
+
+```{r}
+#| echo: false
+#| include: false
+
+# Rename all ALG group to Algae
+comoros_data2 <- comoros_data %>%
+  mutate(level1_code = recode(level1_code,
+                              "ALG"   = "Macro-algae",
+                              "Algae" = "Macro-algae"))
+
+comoros_data2$Year<- as.numeric(as.character(comoros_data2$Year))
+
+# Filter out rows where level1_code is "Turf algae"
+comoros_data2 <- comoros_data2 %>% 
+  filter(level1_code != "Turf algae")
+
+initial_alg_regional <- initial_alg_regional %>% 
+  filter(`Benthic code` != "AHAL", 
+         `Benthic code` != "ATRF") %>% 
+  mutate(`Benthic code` = if_else(`Benthic code` == "ALG", "AMAC", `Benthic code`))
+
+
+# Reorder level1_code so "Hard Coral" appears first
+comoros_data2 <- comoros_data2 %>%
+  mutate(level1_code = factor(level1_code, levels = c("Hard coral", "Macro-algae")))
+
+
+```
+
+```{r, fig.cap= "Fig 1: Trend in mean cover (%) over years for different benthic categories in Comoros, with raw data points and trend line (95% CI)."}
+#| echo: false
+#| warning: false
+
+# Trend plot
+p1 <- ggplot(comoros_data2, aes(x = factor(Year), y = mean_cover)) +
+  # Points for raw data
+  geom_point(shape = 21, color = "black", fill = "#69b3a2", size = 1.5, alpha = 0.7) +
+  
+  # Trend line with confidence interval
+  geom_smooth(aes(group = 1), se = TRUE, color = "black", fill = "lightblue", alpha = 0.5) +
+  
+  # Facet by category (Algae, Hard Coral)
+  facet_wrap(~level1_code) +
+  
+  # Labels and title
+  labs(
+    x = "Year",
+    y = "Mean Cover (%)"
+  ) +
+  
+  # Minimal theme for clarity
+  theme_classic() +
+  theme(
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9)
+  )
+
+p1
+
+ggsave("trend_plot.png", plot = p1, width = 8, height = 6, dpi = 300)
+
+```
+
+**Sub_natioanl Trend**
+
+-   The Grand Comore dataset contains numerous zero-cover values for Algae, particularly in the 2022 and 2023 data collected by CORDIO and the University of Comoros.
+
+```{r, fig.cap="Fig 2: Trend in mean cover (%) over years for different benthic categories and sectors in Comoros, with raw data points and LOESS trend line (95% CI)."}
+#| echo: false
+#| warning: false
+
+
+p2 <- ggplot(comoros_data2, aes(x = factor(Year), y = mean_cover)) +
+  # Points for raw data
+  geom_point(shape = 21, color = "black", fill = "#69b3a2", size = 1.5, alpha = 0.7) +
+  
+  # Trend line with confidence interval
+  geom_smooth(aes(group = 1), method = "loess", span = 0.75, se = TRUE, color = "black", fill = "lightblue", alpha = 0.5)+
+  
+  # Facet by category (Algae, Hard Coral) and sub_national
+  facet_grid(Sector ~ level1_code) +
+  
+  # Labels and title
+  labs(
+    x = "Year",
+    y = "Mean Cover (%)",
+    title = ""
+  ) +
+  
+  # Minimal theme for clarity
+  theme_classic() +
+  theme(
+    panel.grid.major = element_line(color = "gray90"),
+    panel.grid.minor = element_blank(),
+    strip.text = element_text(face = "bold", size = 10),
+    axis.text.x = element_text(angle = 45, hjust = 1, size = 9),
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+p2
+
+ggsave("trend_plot_ecoregion.png", plot = p2, width = 8, height = 6, dpi = 300)
+```
+
+## Spatial Distribution of Data
+
+-   The majority of the reef sites surveyed were classified as partially restricted, falling under National Parks, with a few located in community reserves.
+
+-   The Anjouan sites have a greater trend of data, with more than one year of data points, compared to the other two islands.
+
+-   Need to investigate why some coordinates at Grand Comore are on land instead of coral reefs
+
+```{r data-prep}
+#| echo: false
+#| include: false
+
+# Check the CRS of the Comoros map and set it if missing
+if (is.na(st_crs(comoros_map))) {
+  st_crs(comoros_map) <- 4326  # Set CRS to WGS 84 if it's missing
+}
+
+comoros_region <- comoros_map %>%
+  filter(NAME == "Comoros")
+
+
+# Add missing values
+current_HC$Management_level[which(current_HC$Location=="Shisiwani National Park")] <- "Partially Restricted"
+
+current_ALG$Management_level[which(current_ALG$Location=="Shisiwani National Park")] <- "Partially Restricted"
+
+# Summarize data for Hard Coral (current_HC)
+hc_summary <- current_HC %>%
+  group_by(Latitude, Longitude, Management_level) %>%
+  summarize(Years = n_distinct(Year), .groups = "drop")
+
+# Summarize data for Algae (current_ALG)
+alg_summary <- current_ALG %>%
+  group_by(Latitude, Longitude, Management_level) %>%
+  summarize(Years = n_distinct(Year), .groups = "drop")
+
+# Add a Category column to distinguish between Hard Coral and Algae
+hc_summary$Category <- "Hard Coral"
+alg_summary$Category <- "Macro-algae"
+
+# Combine the two summarized dataframes into one
+hc_alg_summary <- bind_rows(hc_summary, alg_summary)
+
+# Remove rows with missing Latitude or Longitude
+hc_alg_summary_clean <- hc_alg_summary %>%
+  filter(!is.na(Latitude) & !is.na(Longitude))
+
+hc_alg_summary_clean$Management_level[which(hc_alg_summary_clean$Management_level=="Partially Restricted")] <- "Partially restricted"
+
+
+
+# Convert the cleaned dataframe to a spatial object
+hc_alg_sf <- st_as_sf(hc_alg_summary_clean, coords = c("Longitude", "Latitude"), crs = 4326)
+
+# Format spatial data
+comoros_region <- st_transform(comoros_region, crs = 4326)
+st_crs(reef_areas) <- 4326
+reef_areas<- st_transform(reef_areas, 4326)
+reef_areas <- st_transform(reef_areas, st_crs(comoros_region))
+reef_areas_comoros <- st_intersection(reef_areas, comoros_region)
+
+
+```
+
+```{r, fig.cap="Fig 3: Spatial distribution of surveyed sites in Comoros. Points are color-coded by management level, sized by the number of years, and shaped by benthic category (Hard Coral or Algae), with separate maps for each category."}
+#| echo: false
+
+# Create the map with Hard Coral and Algae side by side with a single legend
+p3 <- ggplot() +
+  geom_sf(data = comoros_region, fill = "lightgray", color = "black") +  # Base map of Comoros
+  geom_sf(data = reef_areas_comoros, 
+          aes(fill = "Islands"),  # Add the legend entry for Reef Areas
+          color = "blue", alpha = 0.4) + # Set color and transparency for reef areas
+  geom_sf(data = hc_alg_sf, aes(color = Management_level, size = Years, shape = Category), alpha = 0.6) +
+  facet_wrap(~Category) +  # Create side-by-side maps for Hard Coral and Algae
+  scale_color_manual(values = c("Partially restricted" = "blue", 
+                                "Open access" = "green")) +
+  scale_size_continuous(name = "Years of Data") +  # Adjust size scale for Years of data
+  scale_fill_manual(name = "Islands", values = "cyan") +  # Add a manual legend for reef areas
+  # labs(title = "Spatial Distribution of Surveyed Sites") +
+  theme_minimal() +
+  theme(
+    legend.position = "bottom", 
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.box.spacing = unit(0.5, "cm"),  # Adjust spacing between legends
+    legend.justification = "center"
+  ) +
+  guides(shape = "none")  # Remove legend for 'Category'
+
+p3
+
+ggsave("map_sites_distribution.png", plot = p3, width = 8, height = 6, dpi = 300)
+
+
+```
+
+## Initial vs Current Values
+
+-   Hard coral includes data from the current period (2015–2024) and initial values (pre-1998) separated into regional and Comoros-specific datasets.
+
+-   Algae presents current data (2015–2024) and initial regional data (pre-1998). There is no initial data (Pre 1998) for Algae.
+
+```{r data-prep2}
+#| echo: false
+#| include: false
+
+# Prepare and select required columns for Hard Coral
+hard_coral_current <- current_HC %>%
+  dplyr::select(mean_cover) %>% # Select the relevant column
+  rename(value = mean_cover) %>% # Rename it to 'value'
+  mutate(facet = "Hard Coral", x_axis = "Current (2015-2024)") %>%
+  mutate(value = as.numeric(value)) # Ensure 'value' is numeric
+
+hard_coral_initial_regional <- initial_hc_regional %>%
+  dplyr::select(HC) %>% # Select the relevant column
+  rename(value = HC) %>% # Rename it to 'value'
+  mutate(facet = "Hard Coral", x_axis = "Initial (Pre 1998) Regional") %>%
+  mutate(value = as.numeric(value)) # Ensure 'value' is numeric
+
+# Filter only Comoros data for Initial HC
+hard_coral_comoros <- initial_hc_regional %>%
+  filter(Country == "Comoros") %>% # Filter for Comoros
+  dplyr::select(HC) %>%
+  rename(value = HC) %>%
+  mutate(facet = "Hard Coral", x_axis = "Initial (Pre 1998) Comoros") %>%
+  mutate(value = as.numeric(value)) # Ensure 'value' is numeric
+
+# Prepare and select required columns for Algae
+algae_current <- current_ALG %>%
+  dplyr::select(mean_cover) %>% # Select the relevant column
+  rename(value = mean_cover) %>% # Rename it to 'value'
+  mutate(facet = "Macro-algae", x_axis = "Current (2015-2024)") %>%
+  mutate(value = as.numeric(value)) # Ensure 'value' is numeric
+
+# Prepare and select required columns for Algae Initial (Pre 1998) Regional
+algae_initial_regional <- initial_alg_regional %>%
+  dplyr::select(Alg) %>% # Select the relevant column
+  rename(value = Alg) %>% # Rename it to 'value'
+  mutate(facet = "Macro-algae", x_axis = "Initial (Pre 1998) Regional") %>%
+  mutate(value = as.numeric(value)) # Ensure 'value' is numeric
+
+# Combine all data, including both current and initial algae data
+combined_data <- bind_rows(
+  hard_coral_current,
+  hard_coral_initial_regional,  # Regional data for Hard Coral
+  hard_coral_comoros,  # Comoros-specific HC data
+  algae_current,
+  algae_initial_regional # Added the Initial (Pre 1998) for Algae
+)
+
+# Reorder facets so that Hard Coral comes first
+combined_data$facet <- factor(combined_data$facet, levels = c("Hard Coral", "Macro-algae"))
+
+
+
+```
+
+```{r, fig.cap="Fig 4: Boxplot of percentage cover across different time periods (Current, Initial Regional, Initial Comoros) and benthic categories (Algae), with jittered points to display individual data. Facets represent different categories, and colors differentiate time periods and categorie."}
+#| echo: false
+
+# Create the boxplot with individual points and fixed y-axis
+
+p4 <- ggplot(combined_data, aes(x = x_axis, y = value, fill = x_axis)) +
+  geom_boxplot(outlier.shape = NA) +  # Remove outliers from the boxplot itself
+  geom_jitter(width = 0.2, size = 1.5, alpha = 0.7) +  # Add points to show all data
+  facet_wrap(~facet, scales = "fixed") +  # Fix y-axis across facets
+  labs(
+    title = "",
+    x = "Time Period",
+    y = "Percentage cover"
+  ) +
+  scale_fill_manual(
+    values = c("Current (2015-2024)" = "skyblue", 
+               "Initial (Pre 1998) Regional" = "orange", 
+               "Initial (Pre 1998) Comoros" = "green", 
+               "Macro-algagae" = "purple"),
+    guide = "none"
+  ) +
+  theme_bw() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    strip.text = element_text(face = "bold", size = 12)
+  )
+
+p4
+
+ggsave("initial_current_plot.png", plot = p4, width = 8, height = 6, dpi = 300)
+
+```
+
+## Summary of Baseline Data
+
+-   Used three category of Algae (ALG, ATRF and AMAC) but not Halimeda
+-   No algae baseline for Comoros; suggestions to use regional or closest region such as NE Madagascar, and N Mozambique/S Tanzania or Aldabra/Cosmoledo areas.
+-   The Hard Coral baseline for Comoros, based on 7 points (4 from Moheli), suggests using the regional baseline due to the limited data and poor spatial distribution at the national level.
+
+```{r data-prep3}
+#| echo: false 
+#| include: false   
+
+# Macro-algae
+initial_alg_regional$`Benthic category`[is.na(initial_alg_regional$`Benthic category`) & initial_alg_regional$`Benthic code`=="AMAC"] <- "Macro-algae" 
+
+# Rename all ALG group to Algae 
+initial_alg_regional2 <- initial_alg_regional %>%   mutate(`Benthic category` = recode(`Benthic category`, "Algae"            = "Macro-algae",
+                                       "Algae macro"      = "Macro-algae",
+                                       "Fleshy Algae"     = "Macro-algae",
+                                       "Algal mat"        = "Macro-algae",
+                              "Hard substrate with algae" = "Macro-algae"))  
+
+initial_alg_regional2 <- subset(initial_alg_regional2,`Benthic code` != "AHAL" )  
+
+initial_alg_regional2$Year[which(initial_alg_regional2$Year=="1987/1988")] <- "1987"  
+
+initial_alg_regional2$Year<- as.numeric(as.character(initial_alg_regional2$Year))  
+
+initial_hc_regional$HC<- as.numeric(as.character(initial_hc_regional$HC))  
+
+initial_alg_regional2$Alg<- as.numeric(as.character(initial_alg_regional2$Alg)) 
+
+```
+
+```{r data-prep4}
+#| echo: false 
+#| include: false  
+
+# Hard Coral 
+mean_hc<-initial_hc_regional %>%      
+  summarise(group = "Hard coral",     
+            area = "regional",     
+            n = n(),     
+            mean=HC %>% mean() %>% round(1),     
+            sd=HC %>% sd() %>% round(1),     
+            IQR=HC %>% IQR() %>% round(1),     
+            min=HC %>% min()%>% round(1),     
+            max=HC %>% max()%>% round(1),     
+            cv=(sd/mean) %>% round(2))  
+
+mean_comoros_hc <- initial_hc_regional %>%   
+  filter(Country == "Comoros") %>%  # Subset for Comoros   
+  summarise(group = "Hard coral",     
+            area = "Comoros",     
+            n = n(),     
+            mean = mean(HC, na.rm = TRUE) %>% round(1),     
+            sd = sd(HC, na.rm = TRUE) %>% round(1),     
+            IQR = IQR(HC, na.rm = TRUE) %>% round(1),     
+            min = min(HC, na.rm = TRUE) %>% round(1),     
+            max = max(HC, na.rm = TRUE) %>% round(1),     
+            cv = (sd / mean) %>% round(2)   )  
+
+# Algae 
+mean_alg<-initial_alg_regional2 %>%      
+  summarise(group = "Macro-algae",     
+            area = "regional",     
+            n = n(),     
+            mean=Alg %>% mean() %>% round(1),     
+            sd=Alg %>% sd() %>% round(1),     
+            IQR=Alg %>% IQR() %>% round(1),     
+            min=Alg %>% min()%>% round(1),     
+            max=Alg %>% max()%>% round(1),     
+            cv=(sd/mean) %>% round(2))  
+
+# Macroalgae-coral ratio
+# Convert Year to character in both data frames for consistent matching
+initial_alg_regional2$Year <- as.character(initial_alg_regional2$Year)
+initial_hc_regional$Year <- as.character(initial_hc_regional$Year)
+
+# Ensure the key columns to match are the same type in both data frames
+# You may want to convert other columns like 'data source/owner', 'Country', 'Sector', 'Site', and 'Station' to character if needed
+
+# Match rows from both data frames based on the key columns
+match_indices <- match(
+  paste(initial_alg_regional2$`data source/owner`, initial_alg_regional2$Country, initial_alg_regional2$Year, 
+        initial_alg_regional2$Sector, initial_alg_regional2$Site, initial_alg_regional2$Station),
+  paste(initial_hc_regional$`data source/owner`, initial_hc_regional$Country, initial_hc_regional$Year,
+        initial_hc_regional$Sector, initial_hc_regional$Site, initial_hc_regional$Station)
+)
+
+# Filter out rows where no match was found (NA) in the match_indices
+matched_data <- initial_alg_regional2[!is.na(match_indices), ]
+
+# Add HC column from initial_hc_regional to matched data
+matched_data$HC <- initial_hc_regional$HC[match_indices[!is.na(match_indices)]]
+
+# remove unnecessary columns like 'Benthic category' and 'Benthic code'
+mean_MaCoR <- matched_data %>%
+  dplyr::select(-`Benthic category`, -`Benthic code`)
+
+
+mean_MaCoR <- mean_MaCoR %>%
+  mutate(MaCoR = Alg / (Alg + HC)) %>%  # Create MaCoR column
+  dplyr::select(-Alg, -HC)  # Remove Alg and HC columns
+
+# Algae 
+mean_macoR<-mean_MaCoR %>%      
+  summarise(group = "MaCoR",     
+            area = "regional",     
+            n = n(),     
+            mean=MaCoR %>% mean() %>% round(1),     
+            sd=MaCoR %>% sd() %>% round(1),     
+            IQR=MaCoR %>% IQR() %>% round(1),     
+            min=MaCoR %>% min()%>% round(1),     
+            max=MaCoR %>% max()%>% round(1),     
+            cv=(sd/mean) %>% round(2)) 
+
+
+
+# Merge all the three
+initial_values_hc_alg <- rbind(mean_hc,mean_comoros_hc,mean_alg,mean_macoR) 
+
+```
+
+```{r}
+#| echo: false 
+#| include: false  
+
+bootn=1000
+
+# HC
+# regional
+boot_hc_regional<-data.frame(matrix(0, nrow=1, ncol=bootn))
+boot2_hc_regional<-data.frame(matrix(0, nrow=1, ncol=1))
+
+sample_hc_regional<-initial_hc_regional$HC
+
+
+  for(i in 1:bootn){
+      m <- sample(sample_hc_regional,replace=T)
+     boot_hc_regional[1,i] <- mean(m) %>% round(1)
+  }
+ boot2_hc_regional$mean_bootstrap[1]<-boot_hc_regional[1,1:bootn] %>% rowMeans() %>% round(1)
+ boot2_hc_regional$lowerCI[1]<-boot_hc_regional[1,1:bootn] %>% as.numeric() %>% quantile(c(.025))  %>%  round(1)
+ boot2_hc_regional$upperCI[1]<-boot_hc_regional[1,1:bootn] %>% as.numeric() %>% quantile(c(.975))  %>% round(1)
+ boot2_hc_regional$sd_boot[1]<-boot_hc_regional[1,1:bootn] %>% as.numeric() %>% sd() %>% round(2)
+ boot2_hc_regional$area<-'regional'
+
+ #combine bootstrapped CIs with mean and other intervals
+mean_hc_regional<-mean_hc %>% 
+  left_join(boot2_hc_regional, by = "area") %>%
+  mutate(CI=((upperCI-lowerCI)/2)%>% round(1)) %>% 
+  dplyr::select(group,     
+         area,
+         n,
+         mean,
+         sd,
+         IQR,
+         min,
+         max,
+         cv,
+         lowerCI,
+         upperCI,
+         CI,
+         sd_boot)
+
+# Comoros
+boot_hc_national<-data.frame(matrix(0, nrow=1, ncol=bootn))
+boot2_hc_national<-data.frame(matrix(0, nrow=1, ncol=1))
+ sample_hc_comoros<- initial_hc_regional %>% filter(Country == "Comoros") # Subset for Comoros initial_hc_regional$HC
+ sample_hc_comoros<- sample_hc_comoros$HC
+
+
+  for(i in 1:bootn){
+      m <- sample(sample_hc_comoros,replace=T)
+     boot_hc_national[1,i] <- mean(m) %>% round(1)
+  }
+ boot2_hc_national$mean_bootstrap[1]<-boot_hc_national[1,1:bootn] %>% rowMeans() %>% round(1)
+ boot2_hc_national$lowerCI[1]<-boot_hc_national[1,1:bootn] %>% as.numeric() %>% quantile(c(.025))  %>%  round(1)
+ boot2_hc_national$upperCI[1]<-boot_hc_national[1,1:bootn] %>% as.numeric() %>% quantile(c(.975))  %>% round(1)
+ boot2_hc_national$sd_boot[1]<-boot_hc_national[1,1:bootn] %>% as.numeric() %>% sd() %>% round(2)
+ boot2_hc_national$area<-'Comoros'
+
+ #combine bootstrapped CIs with mean and other intervals
+mean_hc_national<-mean_comoros_hc %>% 
+  left_join(boot2_hc_national, by = "area") %>%
+  mutate(CI=((upperCI-lowerCI)/2)%>% round(1)) %>% 
+  dplyr::select(group,     
+         area,
+         n,
+         mean,
+         sd,
+         IQR,
+         min,
+         max,
+         cv,
+         lowerCI,
+         upperCI,
+         CI,
+         sd_boot)
+
+
+# Macro-algae
+# regional
+boot_alg_national<-data.frame(matrix(0, nrow=1, ncol=bootn))
+boot2_alg_national<-data.frame(matrix(0, nrow=1, ncol=1))
+ sample_alg_regional<-initial_alg_regional2$Alg
+
+
+  for(i in 1:bootn){
+      m <- sample(sample_alg_regional,replace=T)
+     boot_alg_national[1,i] <- mean(m) %>% round(1)
+  }
+ boot2_alg_national$mean_bootstrap[1]<-boot_alg_national[1,1:bootn] %>% rowMeans() %>% round(1)
+ boot2_alg_national$lowerCI[1]<-boot_alg_national[1,1:bootn] %>% as.numeric() %>% quantile(c(.025))  %>%  round(1)
+ boot2_alg_national$upperCI[1]<-boot_alg_national[1,1:bootn] %>% as.numeric() %>% quantile(c(.975))  %>% round(1)
+ boot2_alg_national$sd_boot[1]<-boot_alg_national[1,1:bootn] %>% as.numeric() %>% sd() %>% round(2)
+ boot2_alg_national$area<-'regional'
+
+ #combine bootstrapped CIs with mean and other intervals
+mean_alg_regional<-mean_alg %>% 
+  left_join(boot2_alg_national, by = "area") %>%
+  mutate(CI=((upperCI-lowerCI)/2)%>% round(1)) %>% 
+  dplyr::select(group,     
+         area,
+         n,
+         mean,
+         sd,
+         IQR,
+         min,
+         max,
+         cv,
+         lowerCI,
+         upperCI,
+         CI,
+         sd_boot)
+
+# Macroalgae to coral ratio
+# regional
+boot_macor_national<-data.frame(matrix(0, nrow=1, ncol=bootn))
+boot2_macor_national<-data.frame(matrix(0, nrow=1, ncol=1))
+ sample_macor_regional<-mean_MaCoR$MaCoR
+
+
+  for(i in 1:bootn){
+      m <- sample(sample_macor_regional,replace=T)
+     boot_macor_national[1,i] <- mean(m) %>% round(1)
+  }
+ boot2_macor_national$mean_bootstrap[1]<-boot_alg_national[1,1:bootn] %>% rowMeans() %>% round(1)
+ boot2_macor_national$lowerCI[1]<-boot_macor_national[1,1:bootn] %>% as.numeric() %>% quantile(c(.025))  %>%  round(1)
+ boot2_macor_national$upperCI[1]<-boot_macor_national[1,1:bootn] %>% as.numeric() %>% quantile(c(.975))  %>% round(1)
+ boot2_macor_national$sd_boot[1]<-boot_macor_national[1,1:bootn] %>% as.numeric() %>% sd() %>% round(2)
+ boot2_macor_national$area<-'regional'
+
+ #combine bootstrapped CIs with mean and other intervals
+mean_amacor_regional<-mean_macoR %>% 
+  left_join(boot2_macor_national, by = "area") %>%
+  mutate(CI=((upperCI-lowerCI)/2)%>% round(1)) %>% 
+  dplyr::select(group,     
+         area,
+         n,
+         mean,
+         sd,
+         IQR,
+         min,
+         max,
+         cv,
+         lowerCI,
+         upperCI,
+         CI,
+         sd_boot)
+
+
+
+
+#combine HC and ALG into single table
+mean_summary_table <- rbind(mean_hc_regional,mean_hc_national,mean_alg_regional,mean_amacor_regional)
+
+```
+
+```{r}
+#| echo: false
+#| warning: false 
+
+cat("Table 1: Summary statistics for hard coral, algae and macraolgae - coral ration, including regional and Comoros-specific values (mean, SD, IQR, min, max, CV).\n\n")
+
+kable(head(mean_summary_table)) %>% kable_classic(html_font = "Calibri")
+```
+
+## Save Data
+
+## Baseline data
+
+-   The output baseline file has been saved as **Criterion_D_hard_coral_baseline_comoros**.
+
+```{r}
+#| echo: false
+#| include: false
+
+# Define ecoregion values
+ecoregions <- c("Anjouan Island", "Grand Comore Island", "Moheli Island","National")
+
+# Expand dataframe by duplicating rows for each ecoregion
+baseline_comoros <- mean_summary_table %>%
+  tidyr::uncount(length(ecoregions)) %>%  # Duplicate rows
+  mutate(ecoregion = rep(ecoregions, times = nrow(mean_summary_table))) %>%  # Add ecoregion values
+  dplyr::select(ecoregion, everything())  # Reorder columns to make ecoregion the first column
+
+# Save the data
+save(baseline_comoros,file="Criterion_D_hard_coral_baseline_comoros.RDA")
+
+```
+
+## Current Data
+
+```{r}
+#| echo: false
+#| include: false
+
+# Hard coral
+# check that for each site there is only a single benthic code per Year
+h<-comoros_data %>%
+  group_by(Sector, Location, Site, Year,level1_code,Organization) %>%
+  summarise(n = n()) %>% 
+  filter(n>1) # should be 0 if data is in order
+
+
+# set current windows
+current_window<-2015
+
+#filter dataset for only HC values 
+
+HC_current<-comoros_data %>% 
+  group_by(Sector,Location,Site) %>%   
+  filter(Year>=current_window, level1_code=='Hard coral')%>%
+  summarise(first_year=min(Year),
+            recent_year=max(Year),
+            no_years=length(unique(Year)),
+            recent_cover=head(mean_cover,n=1),
+            current_cover=mean(mean_cover,na.rm = T),
+            lat=unique(Latitude)[1],
+            long=unique(Longitude)[1]) #pick just one as different coordinates creates duplicates
+
+
+# Filter the rows with duplicated site_id
+HC_current %>%
+  group_by(Site) %>%
+  filter(n() > 1) # Should be 0
+
+# Set thresholds
+HC_current$threshold_cover<-5  #change threshold cover here if required
+
+names(HC_current)[names(HC_current)=="Sector"] <- "ecoregion"
+
+save(HC_current, file = "Crit_D_HC_data_table.RDA")
+
+
+
+# Macroalgae to coral ration
+#filter dataset for only HC values
+AMAC_current <- comoros_data %>%
+  mutate(level1_code = recode(level1_code, 
+                              "ALG" = "Macro-algae", 
+                              "Algae" = "Macro-algae")) %>%
+  filter(level1_code != "Turf algae", Year >= 2015) %>%
+  dplyr::select(-sd, -se) %>%
+  group_by(Year, Sector, Location, Site,Latitude,Longitude, level1_code) %>%
+  summarise(mean_cover = sum(mean_cover, na.rm = TRUE), .groups = "drop") %>%
+  spread(level1_code, mean_cover) %>%
+  drop_na(`Hard coral`, `Macro-algae`) %>%
+  mutate(macoR = `Macro-algae` / (`Macro-algae` + `Hard coral`)) %>%  # Add macoR column
+  dplyr::select(-`Hard coral`, -`Macro-algae`)  # Remove Hard coral and Macro-algae columns
+
+
+MaCoR_current<-AMAC_current %>% 
+  group_by(Sector,Location,Site) %>%   
+  summarise(first_year=min(Year),
+            recent_year=max(Year),
+            no_years=length(unique(Year)),
+            recent_cover=head(macoR,n=1),
+            current_cover=mean(macoR,na.rm = T),
+            lat=unique(Latitude)[1],
+            long=unique(Longitude)[1]) #pick just one as different coordinates creates duplicates
+
+
+# Filter the rows with duplicated site_id
+MaCoR_current %>%
+  group_by(Site) %>%
+  filter(n() > 1) # Should be 0
+
+# Set thresholds
+MaCoR_current$threshold_cover<-0.8333  #change threshold cover here if required
+
+names(MaCoR_current)[names(MaCoR_current)=="Sector"] <- "ecoregion"
+
+save(MaCoR_current, file = "Crit_D_MaCoR_data_table.RDA")
+
+```

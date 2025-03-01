@@ -1,0 +1,887 @@
+---
+title: "Criteria D Analysis for NCRA Comoros"
+author: "Swaleh Aboud"
+date: "`r Sys.Date()`"
+format:
+  docx: 
+    number-sections: true
+    toc: true
+    fig-cap: true
+editor: visual
+---
+
+# About the Document
+
+# Data and Folders
+
+The working directory for this project is currently hosted in a private repository to facilitate collaboration with an external contributor, Franzinho Smith. Once significant progress has been achieved, the project will be transitioned to the Organizational repository for broader access. The dataset utilized for this analysis is available and can be accessed in the CORDIO GitHub repository at the following path: `\Coral-Juvenile-Manuscript\Comoro NCRA\analysis_code\Benthic\Criteria D`.
+
+```{r}
+#| echo: false
+#| include: false
+
+# Setting working directory
+getwd()
+
+# Required Packages
+library(dplyr)
+library(magrittr)
+library(ggplot2)
+library(patchwork) # For combining plots
+library(sf)        # For spatial data handling
+library(kableExtra)
+library(knitr)
+
+
+
+
+```
+
+# Datasets
+
+```{r}
+#| echo: false
+#| include: false
+
+load("../../../creation_code/Exploration/Crit_D_HC_data_table.RDA") # current data
+load("../../../creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA") # baseline HC
+load("../../../creation_code/Exploration/Crit_D_MaCoR_data_table.RDA") # MaCoR
+
+```
+
+```{r}
+#| echo: false
+#| include: false
+
+
+# Hard coral
+# Baseline
+baseline_HC_selected <- 
+  baseline_comoros %>%
+  filter(area %in% c("regional")) %>%
+  filter(group %in% c("Hard coral")) %>%
+  dplyr::select(ecoregion,
+                group, 
+                area, 
+                baseline_cover = mean,
+                baseline_sd = sd)
+
+
+# Current
+current_HC_selected <- HC_current %>%
+dplyr::select(ecoregion, Location, Site, lat, long, current_cover, threshold_cover)
+
+# Add a row with 'national' under ecoregion
+current_HC_selected <- current_HC_selected %>%
+  bind_rows(
+    current_HC_selected %>%
+      reframe(
+        ecoregion = "National",
+        Location = Location,
+        Site = Site,
+        lat = lat,
+        long = long,
+        current_cover = current_cover,
+        threshold_cover = threshold_cover
+      )
+  )
+
+current_HC_selected$ecoregion[which(current_HC_selected$ecoregion=="Grand Comore")] <-"Grand Comore Island"
+current_HC_selected$ecoregion[which(current_HC_selected$ecoregion=="Moheli island")] <-"Moheli Island"
+
+
+# Macroalgae to Coral ratio
+# Baseline
+baseline_macor_selected <- baseline_comoros %>%
+  filter(area %in% c("regional")) %>%
+  filter(group %in% c("MaCoR")) %>%
+  dplyr::select(ecoregion,
+                group, 
+                area, 
+                baseline_cover = mean,
+                baseline_sd = sd)
+
+
+# Current
+current_macor_selected <- 
+  MaCoR_current %>%
+  dplyr::select(ecoregion, 
+                Location, 
+                Site, 
+                lat, 
+                long, 
+                current_cover,
+                threshold_cover)
+
+# Add a row with 'national' under ecoregion
+current_macor_selected <- current_macor_selected %>%
+  bind_rows(
+    current_macor_selected %>%
+      reframe(
+        ecoregion = "National",
+        Location = Location,
+        Site = Site,
+        lat = lat,
+        long = long,
+        current_cover = current_cover,
+        threshold_cover = threshold_cover
+      )
+  )
+
+current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Grand Comore")] <-"Grand Comore Island"
+current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Moheli island")] <-"Moheli Island"
+
+```
+
+# Evaluate Criteria D
+
+## Hard coral
+
+```{r}
+#| echo: false
+#| include: false
+#| warning: false
+
+# Set iteration levels
+i_min <- 10
+i_max <- 1e3
+
+# Set iteration interval
+i_interval <- 10
+
+# Create empty object to hold results
+criterion_d_biotic_disruption_coral_cover_method_b <- tibble()
+
+# Loop through iterations
+for(i in seq(from = i_min, to = i_max, by = i_interval)) {
+
+  # Set seed for reproducibility
+  set.seed(i + 81)
+
+  # Randomly assign baseline values
+  dat <- current_HC_selected %>%
+    mutate(
+      baseline_cover = 44, # regional baseline
+      baseline_sd = 18.1 # ragionel value
+    ) %>%
+    group_by(ecoregion) %>%
+    mutate(
+      baseline_cover = rnorm(1, mean = baseline_cover, sd = baseline_sd)
+    )
+
+  # Calculate relative severity
+  dat <- dat %>%
+    mutate(
+      relative_severity = 100 * (baseline_cover - current_cover) / 
+                          (baseline_cover - threshold_cover),
+      relative_severity = scales::rescale(relative_severity, to = c(0, 100))
+    )
+
+  # Summarize proportion of stations for relative severity classes
+  summarized <- dat %>%
+    group_by(ecoregion) %>%
+    summarise(
+      rel_sev_30 = 100 * sum(relative_severity >= 30 & relative_severity < 50) / length(relative_severity),
+      rel_sev_50 = 100 * sum(relative_severity >= 50 & relative_severity < 80) / length(relative_severity),
+      rel_sev_80 = 100 * sum(relative_severity >= 80 & relative_severity <= 100) / length(relative_severity),
+      relative_severity = mean(relative_severity, na.rm = TRUE), # Add mean relative severity
+      .groups = "drop"
+    )
+
+  # Assign threat status
+  summarized <- summarized %>%
+    mutate(
+      status_30 = ifelse(rel_sev_30 >= 80 & rel_sev_30 <= 100, 2, NA),
+      status_50 = ifelse(rel_sev_50 >= 80 & rel_sev_50 <= 100, 3, NA),
+      status_50 = ifelse(rel_sev_50 >= 50 & rel_sev_50 < 80, 2, status_50),
+      status_80 = ifelse(rel_sev_80 >= 50 & rel_sev_80 < 80, 3, NA),
+      status_80 = ifelse(rel_sev_80 >= 80 & rel_sev_80 <= 100, 4, status_80),
+      status_80 = ifelse(rel_sev_80 >= 30 & rel_sev_80 < 50, 2, status_80),
+      status_30 = ifelse(is.na(status_30), 1, status_30),
+      status_50 = ifelse(is.na(status_50), 1, status_50),
+      status_80 = ifelse(is.na(status_80), 1, status_80),
+      max_threat = pmax(status_30, status_50, status_80)
+    )
+
+  # Create conversion object for threat values
+  threat_conversions <- tribble(
+    ~threat_value, ~status,
+    1, "NT/LC",
+    2, "VU",
+    3, "EN",
+    4, "CR",
+    5, "CO"
+  )
+
+  # Convert threat values
+  summarized <- summarized %>%
+    left_join(threat_conversions %>% rename(max_threat = threat_value), by = "max_threat")
+
+  # Include iteration number
+  summarized <- summarized %>%
+    mutate(Iteration = i)
+
+  # Harvest results
+  criterion_d_biotic_disruption_coral_cover_method_b <- bind_rows(
+    criterion_d_biotic_disruption_coral_cover_method_b,
+    summarized
+  )
+}
+
+    
+    
+# summarise
+    criterion_d_biotic_disruption_coral_cover_method_b %>%
+      group_by(ecoregion,
+               status) %>%
+      summarise(n_categories = n()) %>%
+      mutate(percent = 100 * n_categories / sum(n_categories))
+    
+ 
+```
+
+```{r}
+#| echo: false
+#| include: false
+
+# Create a new column for IUCN RLE categories
+dat <- dat %>%
+  mutate(
+    iucn_status = case_when(
+      relative_severity < 30 ~ "NT/LC",  # Green
+      relative_severity >= 30 & relative_severity < 50 ~ "VU",  # Yellow
+      relative_severity >= 50 & relative_severity < 80 ~ "EN",  # Orange
+      relative_severity >= 80 & relative_severity <= 100 ~ "CR",  # Red
+      TRUE ~ NA_character_
+    )
+  )
+
+# Define the IUCN RLE color coding
+iucn_colors <- c(
+  "CR" = "red",
+  "EN" = "orange",
+  "VU" = "yellow",
+  "NT/LC" = "green"
+)
+
+# Calculate the number of points for each ecoregion
+ecoregion_counts <- dat %>%
+  group_by(ecoregion) %>%
+  summarise(n = n(), .groups = "drop")
+
+dat <- dat %>%
+  mutate(iucn_status = factor(iucn_status, levels = c("NT/LC", "VU", "EN", "CR")))
+
+
+```
+
+```{r, fig.cap= "Fig. 1; Relative severity for Hard coral by ecoregion, with points color-coded according to IUCN RLE status (NT/LC, VU, EN, CR). The number of data points for each ecoregion is indicated by n"}
+#| echo: false
+
+
+# Create the plot
+p1 <- suppressWarnings(
+  ggplot(dat, aes(x = ecoregion, y = relative_severity)) +
+  geom_boxplot(aes(fill = ecoregion), alpha = 0.5, outlier.shape = NA) +  # Boxplot with different fill colors for ecoregions, remove outliers from boxplot
+  geom_point(aes(color = iucn_status), alpha = 0.7, size = 3, position = position_jitter(width = 0.2)) +  # Add scattered points with jitter
+  scale_y_reverse(  # Reverse the Y-axis
+    name = "Relative Severity",
+    breaks = seq(0, 100, by = 20)
+  ) +
+  scale_color_manual(
+    values = iucn_colors,  # Apply color mapping based on IUCN status
+    name = "Relative Severity"
+  ) +
+  labs(
+    title = "",
+    x = "",
+    y = "Relative Severity (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_line(color = "blue", linetype = "dotted", size = 0.5),
+    panel.grid.major.y = element_blank(),  # Remove major grid lines on Y-axis
+    panel.grid.minor.y = element_blank(),  # Remove minor grid lines on Y-axis
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black"),
+    legend.position = "right",  # Adjust legend position
+    axis.title.x = element_blank()  # Remove the X-axis title
+  ) +
+  # Add dashed lines for the specified RLE thresholds
+  geom_hline(yintercept = 0, linetype = "dashed", color = "green", size = 1) +  # 0% - Green
+  geom_hline(yintercept = 30, linetype = "dashed", color = "yellow", size = 1) +  # 30% - Yellow
+  geom_hline(yintercept = 50, linetype = "dashed", color = "orange", size = 1) +  # 50% - Orange
+  geom_hline(yintercept = 80, linetype = "dashed", color = "red", size = 1) +  # 80% - Red
+  # Add count of points (n) below the X-axis labels
+  geom_text(data = ecoregion_counts, aes(x = ecoregion, y = -10, label = paste("n =", n)),
+            size = 4, vjust = 1, color = "black") +  # Adjust position and text size
+  guides(
+    fill = "none"  # Remove legend for ecoregion fill
+  ))
+
+p1
+
+ggsave("HC_RS_ecoregion.png", plot = p1, width = 8, height = 6, dpi = 300)
+
+
+```
+
+```{r}
+#| echo: false
+# Preparing data for Visualization
+
+# Summarizing the data
+# Grouped calculation by ecoregion
+viz_data_summary <- summarized %>%
+  group_by(ecoregion) %>%
+  summarise(
+    # Identify maximum extent and corresponding severity range for each ecoregion
+    max_extent = max(c(rel_sev_30, rel_sev_50, rel_sev_80), na.rm = TRUE),
+    severity_range = case_when(
+      max_extent == rel_sev_30 ~ "30-50",
+      max_extent == rel_sev_50 ~ "50-80",
+      max_extent == rel_sev_80 ~ "80-100",
+      TRUE ~ NA_character_
+    ),
+    # Calculate max_severity from dat based on the identified severity range
+    max_severity = case_when(
+      severity_range == "30-50" ~ mean(
+        dat %>% filter(ecoregion == first(ecoregion), 
+                       relative_severity >= 30, 
+                       relative_severity < 50) %>% pull(relative_severity),
+        na.rm = TRUE
+      ),
+      severity_range == "50-80" ~ mean(
+        dat %>% filter(ecoregion == first(ecoregion), 
+                       relative_severity >= 50, 
+                       relative_severity < 80) %>% pull(relative_severity),
+        na.rm = TRUE
+      ),
+      severity_range == "80-100" ~ mean(
+        dat %>% filter(ecoregion == first(ecoregion), 
+                       relative_severity >= 80, 
+                       relative_severity <= 100) %>% pull(relative_severity),
+        na.rm = TRUE
+      ),
+      TRUE ~ NA_real_
+    ),
+    # Get status from the summarised dataframe
+    status = first(status),
+    .groups = "drop"
+  )
+
+
+# Ensure `status` is a factor for color mapping
+viz_data_summary <- viz_data_summary %>%
+  mutate(status = factor(status, levels = c("NT/LC", "VU", "EN", "CR", "CO")))
+
+# Ensure shape_code is being applied to the plot
+# Ensure ecoregion is a factor and map shape_code accordingly
+viz_data_summary <- viz_data_summary %>%
+  mutate(
+    ecoregion = factor(ecoregion, levels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")),
+    shape_code = case_when(
+      ecoregion == "National" ~ 16,  # Solid circle
+      ecoregion == "Anjouan Island" ~ 15,  # Solid square
+      ecoregion == "Grand Comore Island" ~ 17,  # Solid triangle
+      ecoregion == "Moheli Island" ~ 18,  # Solid diamond
+      TRUE ~ NA_integer_
+    )
+  )
+
+# Define IUCN RLE color coding
+colors_class <- c(
+  `CR` = "red",
+  `EN` = "orange",
+  `VU` = "yellow",
+  `NT/LC` = "lawngreen"
+)
+
+```
+
+```{r}
+
+# Load the shapefile of Comoros (replace with the correct path)
+comoros_map <- st_read("../../../data_raw/spatial/ne_10m_admin_0_map_units.shp")
+
+print(st_crs(comoros_map))
+
+# Assign the CRS manually to EPSG:4326 (WGS 84)
+comoros_map <- st_set_crs(comoros_map, 4326)
+
+# Filter for the Comoros
+comoros_data <- comoros_map[comoros_map$SOVEREIGNT == "Comoros", ]
+
+st_crs(comoros_data)
+
+str(dat)
+dat$lat <- as.numeric(as.character(dat$lat))
+
+dat_clean <- dat[!is.na(dat$lat) & !is.na(dat$long), ]
+
+# Check the structure again to ensure missing values are handled
+str(dat_clean)
+
+dat_clean <- st_as_sf(dat_clean, coords = c("long", "lat"), crs = 4326)
+
+
+# Map the IUCN status to colors
+iucn_colors <- c(
+  "CR" = "red",
+  "EN" = "orange",
+  "VU" = "yellow",
+  "NT/LC" = "green"
+)
+
+# Extract longitude and latitude from the spatial object
+dat_clean_coords <- st_coordinates(dat_clean)
+
+# Add the extracted coordinates back to the data frame
+dat_clean <- cbind(dat_clean, dat_clean_coords)
+
+# Plot the data again
+p_HC <- ggplot() +
+  # Plot the filtered shapefile map of Comoros
+  geom_sf(data = comoros_data, fill = "lightgray", color = "black") +
+  # Plot points with reduced size
+  geom_point(data = dat_clean, aes(x = X, y = Y, color = iucn_status), size = 2.5) +
+  # Apply IUCN colors
+  scale_color_manual(values = iucn_colors) +
+  # Add title and labels
+  labs(
+    title = "",
+    x = "Longitude",
+    y = "Latitude",
+    color = ""
+  ) +
+  # Adjust xlim and ylim for clarity
+  coord_sf(xlim = c(43, 45), ylim = c(-12.7, -11), expand = FALSE) +
+  # Minimal theme with reduced margins
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",       # Place the legend at the bottom
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"), # Adjust margins for more space
+    axis.title = element_text(size = 12),           # Increase axis label size
+    plot.title = element_text(size = 16, hjust = 0.5) # Center and enlarge title
+  )
+
+p_HC
+
+ggsave("HC_RS_map.png", width = 12, height = 10, dpi = 300, bg = "white")
+
+
+```
+
+```{r, fig.cap= "Fig. 2; Criteria D results for Hard coral included Relative severity versus extent by ecoregion, color-coded by IUCN RLE status. Dashed lines represent threshold values for severity and extent (30%, 50%, 80%)."}
+#| echo: false
+
+# Create scatter plot with ecoregion names in the legend and shape codes in the plot
+p2 <- ggplot(viz_data_summary, aes(x = max_severity, y = max_extent, shape = ecoregion, color = status)) +
+  geom_point(size = 4, alpha = 0.7) +
+  scale_x_continuous(
+    limits = c(0, 100),
+    name = "Relative Severity (%)",
+    breaks = seq(0, 100, by = 20)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 100),
+    name = "Extent (%)",
+    breaks = seq(0, 100, by = 20)
+  ) +
+  scale_shape_manual(
+    values = c(16, 15, 17, 18),  # Shape codes directly mapped
+    labels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")  # Add labels for the legend
+  ) +
+  scale_color_manual(
+    values = colors_class,
+    name = "Status"
+  ) +
+  labs(
+    title = "",
+    x = "Relative Severity (%)",
+    y = "Extent (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_line(color = "blue", linetype = "dotted", size = 0.5),
+    panel.grid.major.y = element_line(color = "green", linetype = "dotted", size = 0.5),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  # Add dashed lines for RLE thresholds
+  geom_vline(xintercept = c(30, 50, 80), linetype = "dashed", color = "darkblue", size = 1) +
+  geom_hline(yintercept = c(30, 50, 80), linetype = "dashed", color = "darkgreen", size = 1)
+
+p2
+
+ggsave("HC_criteria_D_ecoregion.png", plot = p2, width = 8, height = 6, dpi = 300)
+
+```
+
+## Macroalgae Coral Ratio (MaCoR)
+
+```{r}
+#| echo: false
+#| include: false
+#| warning: false
+
+# Set iteration levels
+i_min <- 10
+i_max <- 1e3
+
+# Set iteration interval
+i_interval <- 10
+
+# Create empty object to hold results
+criterion_d_biotic_disruption_MaCor_method_b <- tibble()
+
+# Loop through iterations
+for(i in seq(from = i_min, to = i_max, by = i_interval)) {
+
+  # Set seed for reproducibility
+  set.seed(i + 81)
+
+  # Randomly assign baseline values
+  dat <- current_macor_selected %>%
+    mutate(
+      baseline_cover = 0.2, # regional baseline
+      baseline_sd = 0.1 # ragionel value
+    ) %>%
+    group_by(ecoregion) %>%
+    mutate(
+      baseline_cover = rnorm(1, mean = baseline_cover, sd = baseline_sd)
+    )
+
+  # Calculate relative severity
+  dat <- dat %>%
+    mutate(
+      relative_severity = 100 * (baseline_cover - current_cover) / 
+                          (baseline_cover - threshold_cover),
+      relative_severity = scales::rescale(relative_severity, to = c(0, 100))
+    )
+
+  # Summarize proportion of stations for relative severity classes
+  summarized <- dat %>%
+    group_by(ecoregion) %>%
+    summarise(
+      rel_sev_30 = 100 * sum(relative_severity >= 30 & relative_severity < 50) / length(relative_severity),
+      rel_sev_50 = 100 * sum(relative_severity >= 50 & relative_severity < 80) / length(relative_severity),
+      rel_sev_80 = 100 * sum(relative_severity >= 80 & relative_severity <= 100) / length(relative_severity),
+      relative_severity = mean(relative_severity, na.rm = TRUE), # Add mean relative severity
+      .groups = "drop"
+    )
+
+  # Assign threat status
+  summarized <- summarized %>%
+    mutate(
+      status_30 = ifelse(rel_sev_30 >= 80 & rel_sev_30 <= 100, 2, NA),
+      status_50 = ifelse(rel_sev_50 >= 80 & rel_sev_50 <= 100, 3, NA),
+      status_50 = ifelse(rel_sev_50 >= 50 & rel_sev_50 < 80, 2, status_50),
+      status_80 = ifelse(rel_sev_80 >= 50 & rel_sev_80 < 80, 3, NA),
+      status_80 = ifelse(rel_sev_80 >= 80 & rel_sev_80 <= 100, 4, status_80),
+      status_80 = ifelse(rel_sev_80 >= 30 & rel_sev_80 < 50, 2, status_80),
+      status_30 = ifelse(is.na(status_30), 1, status_30),
+      status_50 = ifelse(is.na(status_50), 1, status_50),
+      status_80 = ifelse(is.na(status_80), 1, status_80),
+      max_threat = pmax(status_30, status_50, status_80)
+    )
+
+  # Create conversion object for threat values
+  threat_conversions <- tribble(
+    ~threat_value, ~status,
+    1, "NT/LC",
+    2, "VU",
+    3, "EN",
+    4, "CR",
+    5, "CO"
+  )
+
+  # Convert threat values
+  summarized <- summarized %>%
+    left_join(threat_conversions %>% rename(max_threat = threat_value), by = "max_threat")
+
+  # Include iteration number
+  summarized <- summarized %>%
+    mutate(Iteration = i)
+
+  # Harvest results
+  criterion_d_biotic_disruption_MaCor_method_b <- bind_rows(
+    criterion_d_biotic_disruption_MaCor_method_b,
+    summarized
+  )
+}
+
+    
+    
+# summarise
+    criterion_d_biotic_disruption_MaCor_method_b %>%
+      group_by(ecoregion,
+               status) %>%
+      summarise(n_categories = n()) %>%
+      mutate(percent = 100 * n_categories / sum(n_categories))              
+```
+
+```{r}
+#| echo: false
+#| include: false
+
+# Create a new column for IUCN RLE categories
+dat <- dat %>%
+  mutate(
+    iucn_status = case_when(
+      relative_severity < 30 ~ "NT/LC",  # Green
+      relative_severity >= 30 & relative_severity < 50 ~ "VU",  # Yellow
+      relative_severity >= 50 & relative_severity < 80 ~ "EN",  # Orange
+      relative_severity >= 80 & relative_severity <= 100 ~ "CR",  # Red
+      TRUE ~ NA_character_
+    )
+  )
+
+# Define the IUCN RLE color coding
+iucn_colors <- c(
+  "CR" = "red",
+  "EN" = "orange",
+  "VU" = "yellow",
+  "NT/LC" = "green"
+)
+
+# Calculate the number of points for each ecoregion
+ecoregion_counts <- dat %>%
+  group_by(ecoregion) %>%
+  summarise(n = n(), .groups = "drop")
+
+dat <- dat %>%
+  mutate(iucn_status = factor(iucn_status, levels = c("NT/LC", "VU", "EN", "CR"))) 
+```
+
+```{r, fig.cap= "Fig. 1; Relative severity for MaCoR by ecoregion, with points color-coded according to IUCN RLE status (NT/LC, VU, EN, CR). The number of data points for each ecoregion is indicated by n"}
+#| echo: false
+
+
+# Create the plot
+p3 <- suppressWarnings(
+  ggplot(dat, aes(x = ecoregion, y = relative_severity)) +
+  geom_boxplot(aes(fill = ecoregion), alpha = 0.5, outlier.shape = NA) +  # Boxplot with different fill colors for ecoregions, remove outliers from boxplot
+  geom_point(aes(color = iucn_status), alpha = 0.7, size = 3, position = position_jitter(width = 0.2)) +  # Add scattered points with jitter
+  scale_y_reverse(  # Reverse the Y-axis
+    name = "Relative Severity",
+    breaks = seq(0, 100, by = 20)
+  ) +
+  scale_color_manual(
+    values = iucn_colors,  # Apply color mapping based on IUCN status
+    name = "Relative Severity"
+  ) +
+  labs(
+    title = "",
+    x = "",
+    y = "Relative Severity (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_line(color = "blue", linetype = "dotted", size = 0.5),
+    panel.grid.major.y = element_blank(),  # Remove major grid lines on Y-axis
+    panel.grid.minor.y = element_blank(),  # Remove minor grid lines on Y-axis
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black"),
+    legend.position = "right",  # Adjust legend position
+    axis.title.x = element_blank()  # Remove the X-axis title
+  ) +
+  # Add dashed lines for the specified RLE thresholds
+  geom_hline(yintercept = 0, linetype = "dashed", color = "green", size = 1) +  # 0% - Green
+  geom_hline(yintercept = 30, linetype = "dashed", color = "yellow", size = 1) +  # 30% - Yellow
+  geom_hline(yintercept = 50, linetype = "dashed", color = "orange", size = 1) +  # 50% - Orange
+  geom_hline(yintercept = 80, linetype = "dashed", color = "red", size = 1) +  # 80% - Red
+  # Add count of points (n) below the X-axis labels
+  geom_text(data = ecoregion_counts, aes(x = ecoregion, y = -10, label = paste("n =", n)),
+            size = 4, vjust = 1, color = "black") +  # Adjust position and text size
+  guides(
+    fill = "none"  # Remove legend for ecoregion fill
+  )) 
+
+p3
+
+ggsave("MaCoR_RS_ecoregion.png", plot = p3, width = 8, height = 6, dpi = 300)
+
+```
+
+```{r}
+
+str(dat)
+dat$lat <- as.numeric(as.character(dat$lat))
+
+dat_clean <- dat[!is.na(dat$lat) & !is.na(dat$long), ]
+
+# Check the structure again to ensure missing values are handled
+str(dat_clean)
+
+dat_clean <- st_as_sf(dat_clean, coords = c("long", "lat"), crs = 4326)
+
+
+# Map the IUCN status to colors
+iucn_colors <- c(
+  "CR" = "red",
+  "EN" = "orange",
+  "VU" = "yellow",
+  "NT/LC" = "green"
+)
+
+# Extract longitude and latitude from the spatial object
+dat_clean_coords <- st_coordinates(dat_clean)
+
+# Add the extracted coordinates back to the data frame
+dat_clean <- cbind(dat_clean, dat_clean_coords)
+
+# Plot the data again
+p_MaCoR <- ggplot() +
+  # Plot the filtered shapefile map of Comoros
+  geom_sf(data = comoros_data, fill = "lightgray", color = "black") +
+  # Plot points with reduced size
+  geom_point(data = dat_clean, aes(x = X, y = Y, color = iucn_status), size = 2.5) +
+  # Apply IUCN colors
+  scale_color_manual(values = iucn_colors) +
+  # Add title and labels
+  labs(
+    title = "",
+    x = "Longitude",
+    y = "Latitude",
+    color = ""
+  ) +
+  # Adjust xlim and ylim for clarity
+  coord_sf(xlim = c(43, 45), ylim = c(-12.7, -11), expand = FALSE) +
+  # Minimal theme with reduced margins
+  theme_minimal() +
+  theme(
+    legend.position = "bottom",       # Place the legend at the bottom
+    plot.margin = unit(c(0.5, 0.5, 0.5, 0.5), "cm"), # Adjust margins for more space
+    axis.title = element_text(size = 12),           # Increase axis label size
+    plot.title = element_text(size = 16, hjust = 0.5) # Center and enlarge title
+  )
+
+p_MaCoR
+
+ggsave("MaCoR_RS_map.png", width = 12, height = 10, dpi = 300, bg = "white")
+```
+
+```{r}
+#| echo: false
+# Preparing data for Visualization
+
+# Summarizing the data
+# Grouped calculation by ecoregion
+viz_data_summary <- summarized %>%
+  group_by(ecoregion) %>%
+  summarise(
+    # Identify maximum extent and corresponding severity range for each ecoregion
+    max_extent = max(c(rel_sev_30, rel_sev_50, rel_sev_80), na.rm = TRUE),
+    severity_range = case_when(
+      max_extent == rel_sev_30 ~ "30-50",
+      max_extent == rel_sev_50 ~ "50-80",
+      max_extent == rel_sev_80 ~ "80-100",
+      TRUE ~ NA_character_
+    ),
+    # Calculate max_severity from dat based on the identified severity range
+    max_severity = case_when(
+      severity_range == "30-50" ~ mean(
+        dat %>% filter(ecoregion == first(ecoregion), 
+                       relative_severity >= 30, 
+                       relative_severity < 50) %>% pull(relative_severity),
+        na.rm = TRUE
+      ),
+      severity_range == "50-80" ~ mean(
+        dat %>% filter(ecoregion == first(ecoregion), 
+                       relative_severity >= 50, 
+                       relative_severity < 80) %>% pull(relative_severity),
+        na.rm = TRUE
+      ),
+      severity_range == "80-100" ~ mean(
+        dat %>% filter(ecoregion == first(ecoregion), 
+                       relative_severity >= 80, 
+                       relative_severity <= 100) %>% pull(relative_severity),
+        na.rm = TRUE
+      ),
+      TRUE ~ NA_real_
+    ),
+    # Get status from the summarised dataframe
+    status = first(status),
+    .groups = "drop"
+  )
+
+
+
+# Ensure `status` is a factor for color mapping
+viz_data_summary <- viz_data_summary %>%
+  mutate(status = factor(status, levels = c("NT/LC", "VU", "EN", "CR", "CO")))
+
+# Ensure shape_code is being applied to the plot
+# Ensure ecoregion is a factor and map shape_code accordingly
+viz_data_summary <- viz_data_summary %>%
+  mutate(
+    ecoregion = factor(ecoregion, levels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")),
+    shape_code = case_when(
+      ecoregion == "National" ~ 16,  # Solid circle
+      ecoregion == "Anjouan Island" ~ 15,  # Solid square
+      ecoregion == "Grand Comore Island" ~ 17,  # Solid triangle
+      ecoregion == "Moheli Island" ~ 18,  # Solid diamond
+      TRUE ~ NA_integer_
+    )
+  )
+
+# Define IUCN RLE color coding
+colors_class <- c(
+  `CR` = "red",
+  `EN` = "orange",
+  `VU` = "yellow",
+  `NT/LC` = "lawngreen"
+) 
+
+```
+
+```{r, fig.cap= "Fig. 2; Criteria D results for MaCor included Relative severity versus extent by ecoregion, color-coded by IUCN RLE status. Dashed lines represent threshold values for severity and extent (30%, 50%, 80%)."}
+#| echo: false
+
+# Create scatter plot with ecoregion names in the legend and shape codes in the plot
+p4 <- ggplot(viz_data_summary, aes(x = max_severity, y = max_extent, shape = ecoregion, color = status)) +
+  geom_point(size = 4, alpha = 0.7) +
+  scale_x_continuous(
+    limits = c(0, 100),
+    name = "Relative Severity (%)",
+    breaks = seq(0, 100, by = 20)
+  ) +
+  scale_y_continuous(
+    limits = c(0, 100),
+    name = "Extent (%)",
+    breaks = seq(0, 100, by = 20)
+  ) +
+  scale_shape_manual(
+    values = c(16, 15, 17, 18),  # Shape codes directly mapped
+    labels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")  # Add labels for the legend
+  ) +
+  scale_color_manual(
+    values = colors_class,
+    name = "Status"
+  ) +
+  labs(
+    title = "",
+    x = "Relative Severity (%)",
+    y = "Extent (%)"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 45, hjust = 1),
+    panel.grid.major.x = element_line(color = "blue", linetype = "dotted", size = 0.5),
+    panel.grid.major.y = element_line(color = "green", linetype = "dotted", size = 0.5),
+    panel.border = element_blank(),
+    axis.line = element_line(color = "black")
+  ) +
+  # Add dashed lines for RLE thresholds
+  geom_vline(xintercept = c(30, 50, 80), linetype = "dashed", color = "darkblue", size = 1) +
+  geom_hline(yintercept = c(30, 50, 80), linetype = "dashed", color = "darkgreen", size = 1)  
+
+p4
+
+ggsave("MaCoR_criteria_D_ecoregion.png", plot = p4, width = 8, height = 6, dpi = 300)
+
+```

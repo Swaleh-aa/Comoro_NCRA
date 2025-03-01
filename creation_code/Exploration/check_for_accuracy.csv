@@ -1,0 +1,95 @@
+"","data source/owner","Country","Year","Sector","Site","Station","Benthic category.x","Benthic code.x","Alg","Benthic category.y","Benthic code.y","HC"
+"1","QUOD and BIGOT 2000","Reunion","1999",NA,"Saint Leu","Corne Nord","Macro-algae","AMAC",16.5,"live coral","HC",53.5
+"2","QUOD and BIGOT 2000","Reunion","1999",NA,"La Saline","Planch’Alizé","Macro-algae","AMAC",16.8,"live coral","HC",53.2
+"3","QUOD and BIGOT 2000","Reunion","1999",NA,"La Saline","Trois Chameaux-O","Macro-algae","AMAC",39.6,"live coral","HC",50.4
+"4","QUOD and BIGOT 2000","Reunion","1999",NA,"La Saline","Trois Chameaux-I","Macro-algae","AMAC",7.5,"live coral","HC",32.5
+"5","Ahamada et al. 2002","Mauritius","1999","Sud Est","Bambou Virieux","Back Reef Flat","Macro-algae","AMAC",30,"Hard Coral","HC",30
+"6","Ahamada et al. 2002","Reunion","1999","St Leu","Corne Nord / Varangue","Reef Flat","Macro-algae","AMAC",21.3,"Hard Coral","HC",54.1
+"7","Ahamada et al. 2002","Reunion","1999","St Leu","Corne Nord / Varangue","Outer Slope","Macro-algae","AMAC",31,"Hard Coral","HC",59.8
+"8","Ahamada et al. 2002","Madagascar","1999","North West - Nosy Be","Dzamandjar",NA,"Macro-algae","AMAC",4,"Hard Coral","HC",50.9
+"9","Ahamada et al. 2002","Madagascar","1999","North West - Nosy Be","Dzamandjar",NA,"Macro-algae","AMAC",4,"Hard Coral","HC",50.9
+"10","Ahamada et al. 2002","Madagascar","1999","East - Foulpointe","Foulpointe",NA,"Macro-algae","AMAC",0.5,"Hard Coral","HC",47.1
+"11","Ahamada et al. 2002","Madagascar","1999","East - Foulpointe","Foulpointe",NA,"Macro-algae","AMAC",0.5,"Hard Coral","HC",47.1
+"12","Ahamada et al. 2002","Reunion","1999","St Gilles","Toboggan / Planch","Reef Flat","Macro-algae","AMAC",15.3,"Hard Coral","HC",35.5
+"13","Ahamada et al. 2002","Reunion","1999","St Gilles","Toboggan / Planch","Outer Slope","Macro-algae","AMAC",45.5,"Hard Coral","HC",40.6
+"14","Ahamada et al. 2002","Mauritius","1999","Nord Ouest","Trou aux Biches","Reef Flat","Macro-algae","AMAC",26,"Hard Coral","HC",41
+"15","Ahamada et al. 2002","Mauritius","1999","Nord Ouest","Trou aux Biches","Outer Slope","Macro-algae","AMAC",8,"Hard Coral","HC",43
+"16","Ahamada et al. 2002","Mauritius","1999","Sud Est","Bambou Virieux","Shore Reef Flat","Macro-algae","AMAC",17,"Hard Coral","HC",48
+"17","CORDIO Status report 1999","Kenya","1994","Kilifi","Malindi Marine National Park",NA,"Macro-algae","AMAC",1.6,"Hard Coral","HC",35.7
+"18","McClanahan et al. 2001","Kenya","1998","Malindi/Watamu/Mombasa/Kisite MNPs","Unspecified 9 sites (protected)",NA,"Macro-algae","AMAC",4.5,"Hard Coral","HC",39.6
+"19","McClanahan et al. 2009","Tanzania","1995","Dar es Salaam","Bongoyo",NA,"Frondose algae","AMAC",0.3,"Hard Coral","HC",32.4
+"20","McClanahan et al. 2009","Tanzania","1995","Dar es Salaam","Bongoyo",NA,"Frondose algae","AMAC",0.3,"Hard Coral","HC",32.4
+"21","McClanahan et al. 2009","Tanzania","1995","Dar es Salaam","Mbudya",NA,"Frondose algae","AMAC",0.4,"Hard Coral","HC",52.8
+"22","McClanahan et al. 2009","Tanzania","1995","Dar es Salaam","Mbudya",NA,"Frondose algae","AMAC",0.4,"Hard Coral","HC",52.8
+"23","McClanahan et al. 2009","Tanzania","1996","Tanga","Tanga",NA,"Frondose algae","AMAC",19.6,"Hard Coral","HC",33.8
+"24","Muhando 1999","Tanzania","1997",NA,"Bawe",NA,"Macro-algae","AMAC",2.94,"Hard Coral","HC",53.11
+"25","Muhando 1999","Tanzania","1997",NA,"Bawe",NA,"Macro-algae","AMAC",2.94,"Hard Coral","HC",53.11
+"26","Muhando 1999","Tanzania","1997",NA,"Changuu",NA,"Macro-algae","AMAC",10.97,"Hard Coral","HC",50.11
+"27","Muhando 1999","Tanzania","1997",NA,"Changuu",NA,"Macro-algae","AMAC",10.97,"Hard Coral","HC",50.11
+"28","Muhando 1999","Tanzania","1997",NA,"Chapwani",NA,"Macro-algae","AMAC",3.88,"Hard Coral","HC",44.31
+"29","Muhando 1999","Tanzania","1997",NA,"Chapwani",NA,"Macro-algae","AMAC",3.88,"Hard Coral","HC",44.31
+"30","Muhando 1999","Tanzania","1997",NA,"Chumbe",NA,"Macro-algae","AMAC",8.87,"Hard Coral","HC",51.85
+"31","Muhando 1999","Tanzania","1997",NA,"Chumbe",NA,"Macro-algae","AMAC",8.87,"Hard Coral","HC",51.85
+"32","Muhando 1999","Tanzania","1997",NA,"Kwale",NA,"Macro-algae","AMAC",28.06,"Hard Coral","HC",29.73
+"33","Muhando 1999","Tanzania","1997",NA,"Kwale",NA,"Macro-algae","AMAC",28.06,"Hard Coral","HC",29.73
+"34","Muhando 1999","Tanzania","1997",NA,"Mnemba",NA,"Macro-algae","AMAC",2.44,"Hard Coral","HC",13.95
+"35","Muthiga & McClanahan 1997","Kenya","1993","Kwale","Kisite Marine National Park - Control",NA,"Macro-algae","AMAC",1.3,"Hard Coral","HC",22.85
+"36","Muthiga & McClanahan 1997","Kenya","1993","Kwale","Kisite Marine National Park - Control",NA,"Macro-algae","AMAC",1.3,"Hard Coral","HC",22.85
+"37","Muthiga & McClanahan 1997","Kenya","1994","Kwale","Kisite Marine National Park - Control",NA,"Macro-algae","AMAC",7.49,"Hard Coral","HC",20.75
+"38","Muthiga & McClanahan 1997","Kenya","1993","Kwale","Kisite Marine National Park - Experiment",NA,"Macro-algae","AMAC",1.3,"Hard Coral","HC",25.33
+"39","Muthiga & McClanahan 1997","Kenya","1993","Kwale","Kisite Marine National Park - Experiment",NA,"Macro-algae","AMAC",1.3,"Hard Coral","HC",25.33
+"40","Muthiga & McClanahan 1997","Kenya","1994","Kwale","Kisite Marine National Park - Experiment",NA,"Macro-algae","AMAC",0.47,"Hard Coral","HC",24.2
+"41","Obura - BSc thesis 1989","Kenya","1988",NA,"Malindi",NA,"Macro-algae","AMAC",0,NA,"HC",41.7
+"42","Obura - BSc thesis 1989","Kenya","1988",NA,"Watamu",NA,"Macro-algae","AMAC",4.1,NA,"HC",31.1
+"43","Obura - Phd thesis 1995","Kenya","1993",NA,"MFR-4m.",NA,"Macro-algae","AMAC",0.1,NA,"HC",40.6
+"44","Obura - Phd thesis 1995","Kenya","1993",NA,"MHR - Malindi harbour fringing reef",NA,"Macro-algae","AMAC",11.4,NA,"HC",28.7
+"45","Obura - Phd thesis 1995","Kenya","1993",NA,"MHR-6",NA,"Macro-algae","AMAC",7.5,NA,"HC",40
+"46","Obura - Phd thesis 1995","Kenya","1993",NA,"MNR",NA,"Macro-algae","AMAC",0.1,NA,"HC",37.5
+"47","Obura - Phd thesis 1995","Kenya","1993",NA,"MNR - 11 -12.5 m.",NA,"Macro-algae","AMAC",6.6,NA,"HC",32
+"48","Obura - Phd thesis 1995","Kenya","1993",NA,"MNR, 4-6 meters depth",NA,"Macro-algae","AMAC",1.1,NA,"HC",29.1
+"49","Obura - Phd thesis 1995","Kenya","1993",NA,"MPR",NA,"Macro-algae","AMAC",7.1,NA,"HC",32.1
+"50","Obura - Phd thesis 1995","Kenya","1993",NA,"MPR4-6",NA,"Macro-algae","AMAC",1.7,NA,"HC",49.5
+"51","Obura - Phd thesis 1995","Kenya","1993",NA,"MVG - 5-6  m. below datum",NA,"Macro-algae","AMAC",9.4,NA,"HC",27.3
+"52","Obura - Phd thesis 1995","Kenya","1994",NA,"Watamu Deep fore reef",NA,"Macro-algae","AMAC",3.5,NA,"HC",32
+"53","Obura - Phd thesis 1995","Kenya","1994",NA,"Watamuu Turtle REef, 7 m.",NA,"Macro-algae","AMAC",2.8,NA,"HC",50
+"54","Obura - Phd thesis 1995","Kenya","1994",NA,"WInt - 7 m. depth. Off plots 15/16",NA,"Macro-algae","AMAC",2.8,NA,"HC",19.2
+"55","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","North St Pierre",NA,"Macro-algae","AMAC",8,"Hard Coral","HC",64
+"56","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","North St Pierre",NA,"Macro-algae","AMAC",8,"Hard Coral","HC",64
+"57","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","North St Pierre",NA,"Macroalgae","AMAC",1,"Hard Coral","HC",64
+"58","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","North St Pierre",NA,"Macroalgae","AMAC",1,"Hard Coral","HC",64
+"59","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","South St Pierre",NA,"Macro-algae","AMAC",11,"Hard Coral","HC",29
+"60","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","South St Pierre",NA,"Macro-algae","AMAC",11,"Hard Coral","HC",29
+"61","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","West alphonse",NA,"Macro-algae","AMAC",20,"Hard Coral","HC",48
+"62","Spalding & Jarvis 2002","Sychelles","1998","Southern Sychelles","West alphonse",NA,"Macro-algae","AMAC",20,"Hard Coral","HC",48
+"63","Spalding & Jarvis 2002","Sychelles","1997","Granitic Seychelles","West cousine",NA,"Macro-algae","AMAC",11,"Hard Coral","HC",33
+"64","Spalding & Jarvis 2002","Sychelles","1997","Granitic Seychelles","West cousine",NA,"Macro-algae","AMAC",11,"Hard Coral","HC",33
+"65","Spalding & Jarvis 2002","Sychelles","1997","Granitic Seychelles","West cousine",NA,"Macroalgae","AMAC",4,"Hard Coral","HC",33
+"66","Spalding & Jarvis 2002","Sychelles","1997","Granitic Seychelles","West cousine",NA,"Macroalgae","AMAC",4,"Hard Coral","HC",33
+"67","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",9.4,"Hard Coral","HC",50.3
+"68","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",9.4,"Hard Coral","HC",57.8
+"69","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",9.4,"Hard Coral","HC",50.3
+"70","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",9.4,"Hard Coral","HC",57.8
+"71","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",31.8,"Hard Coral","HC",50.3
+"72","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",31.8,"Hard Coral","HC",57.8
+"73","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",31.8,"Hard Coral","HC",50.3
+"74","Ahamada et al. 2002","Reunion","2000","Etang Sale","Bassin Pirogue",NA,"Macro-algae","AMAC",31.8,"Hard Coral","HC",57.8
+"75","Ahamada et al. 2002","Reunion","2000","St Pierre","Ravine Blanche",NA,"Macro-algae","AMAC",18.9,"Hard Coral","HC",58.1
+"76","Ahamada et al. 2002","Reunion","2000","St Pierre","Ravine Blanche",NA,"Macro-algae","AMAC",18.9,"Hard Coral","HC",58.1
+"77","Quod & Bigot 2000","Madagascar","1999",NA,"south-western region of Toliara","Ifaty","Recently dead coral with algae","RDC",14.1,"Live coral","HC",54.8
+"78","Quod & Bigot 2000","Madagascar","1999",NA,"south-western region of Toliara","Nosy Ve","Recently dead coral with algae","RDC",26,"Live coral","HC",68.3
+"79","Quod & Bigot 2000","Comoros","1999",NA,"Mitsamiouli","North-West Mitsamiouli Reef","Recently dead coral with algae","RDC",15,"Live coral","HC",55
+"80","Quod & Bigot 2000","Comoros","1999",NA,"Mohéli island","Itsamia","Recently dead coral with algae","RDC",18,"Live coral","HC",54
+"81","Quod & Bigot 2000","Reunion","1999","yes","La Saline","Trois Chameaux - I","Macro-algae","AMAC",7.5,"live coral","HC",32.5
+"82","Quod & Bigot 2000","Mayotte","1999",NA,"Surprise","Reef Flat","Recently dead coral with algae","RDC",90,"Live Coral","HC",94.6
+"83","Quod & Bigot 2000","Mayotte","1999",NA,"Surprise","Deeper Reefs","Recently dead coral with algae","RDC",69.2,"Live Coral","HC",97.2
+"84","Quod & Bigot 2000","Mayotte","1999",NA,"Geyser bank",NA,"Recently dead coral with algae","RDC",25,"Live Coral","HC",59.3
+"85","Motta_et_al._2002","Mozambique","2000","Inhambane","Barra","Anchor's_Bay","Macro-algae","AMAC",0,NA,"HC",10.8
+"86","Motta_et_al._2002","Mozambique","2000","Inhambane","Barra","Mike's_Cub_Board","Macro-algae","AMAC",0,NA,"HC",7.8
+"87","Motta_et_al._2002","Mozambique","2000","Inhambane","Bazaruto_Archipelago","Two-mile_Reef","Macro-algae","AMAC",0.1,NA,"HC",85.6
+"88","Motta_et_al._2002","Mozambique","2000","Maputo","Inhaca_Island","Baixo_Danae","Macro-algae","AMAC",0,NA,"HC",31.1
+"89","Motta_et_al._2002","Mozambique","2000","Maputo","Inhaca_Island","Barreira_Vermelha","Macro-algae","AMAC",0,NA,"HC",61.8
+"90","Motta_et_al._2002","Mozambique","2000","Maputo","Inhaca_Island","Ponta_Torres","Macro-algae","AMAC",0,NA,"HC",55.1
+"91","Motta_et_al._2002","Mozambique","2000","Nampula_Province","Mozambique_Island","Goa_Island","Macro-algae","AMAC",1.9,NA,"HC",42.1
+"92","Motta_et_al._2002","Mozambique","2000","Nampula_Province","Mozambique_Island","Sete_Paus_Island","Macro-algae","AMAC",0,NA,"HC",51.7
+"93","Motta_et_al._2002","Mozambique","2000","Pemba_Bay","Pemba","Ponta_Maunhane","Macro-algae","AMAC",0,NA,"HC",78.1
+"94","Motta_et_al._2002","Mozambique","2000","Quirimbas_Archipelago","Sencar","Sencar_Channel","Macro-algae","AMAC",0,NA,"HC",31.8
