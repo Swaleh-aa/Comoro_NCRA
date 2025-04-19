@@ -1,0 +1,344 @@
+---
+title: "Script_to_format_Fish_data_for_NCRA_Analysis"
+author: "Swaleh Aboud"
+date: "2025-04-18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+knitr::opts_chunk$set(warning = FALSE, message = FALSE)
+
+```
+
+
+# Calling Required Packages
+
+```{r}
+# Callning package
+library(dplyr)
+library(forcats)
+library(magrittr)
+library(readxl)
+
+
+```
+
+
+# Import old RLE files
+
+```{r}
+
+# Import data file and select for Tanzania
+Fish_NCRA <- read_excel("../../../data_raw/WIO_GCRMN_fish_data_all_levels_Feb_2020.xlsx", 
+    sheet = "WIO_GCRMN_fish_data_all_levels_")
+
+Fish_NCRA<- Fish_NCRA[Fish_NCRA$Country =="Comoros", ] # filter for Comoros
+
+Fish_NCRA2<- Fish_NCRA[Fish_NCRA$level1_code=="serra" | Fish_NCRA$level1_code=="scari",]
+
+# Import Geofile and select for Tanzania
+Geo_file<-read.csv(file = "../../../../Ecological-Research-Data-Analysis/1. Data processing/Template files/Overall_Geo-file_Updated.csv" ,header = TRUE)
+
+Geo_file<- Geo_file[Geo_file$Country =="Comoros", ] 
+
+
+```
+
+
+# Standardising Sites names
+
+```{r}
+
+# Checked for unmatched site names
+h<-match(Fish_NCRA2$Station,Geo_file$Proposed_Station,nomatch = 0)
+unique(Fish_NCRA2$Station[h==0])
+
+Fish_NCRA2$Station_corrected<-Fish_NCRA2$Station
+
+# Make corrections
+Fish_NCRA2%<>%
+  mutate(Station_corrected = Station_corrected %>% factor() %>%
+           fct_recode(`Bwana_Iddi` = "Bwanaidi",
+                      `Mirereni` = "Mereni",
+                      `Sambia_West` = "Sambia_Reserve",
+                       Chin_02 = "Chindini",
+                       Barakani = "Itsandra", 
+                       Moindzaza = "Moindzzaza",
+                       Shom1 = "Shomoni"
+                      ))
+
+
+
+Fish_NCRA2 <- Fish_NCRA2 %>%
+  mutate(
+    Station_corrected = case_when(
+      Site_id == "Comoros,Anjouan,A"         ~ "Mtsaka",
+      Site_id == "Comoros,Grand_Comore,A"    ~ "GC_A_P_SC05",
+      Site_id == "Comoros,Moheli,A"          ~ "Point Ouani",
+      Site_id == "Comoros,Anjouan,B"         ~ "Habwanajibou_01",
+      Site_id == "Comoros,Grand_Comore,B"    ~ "MW_E_P_SC10",
+      Site_id %in% c("Comoros,Moheli,B_-_N", "Comoros,Moheli,B_-_S") ~ "Djirani",
+      Site_id == "Comoros,Moheli,D"          ~ "Mea",
+      Site_id == "Comoros,Moheli,E"          ~ "Ferenga",
+      TRUE                                    ~ Station_corrected  # Keep existing if no match
+    )
+  )
+
+
+# Add other columns
+Fish_NCRA2$site_corrected<-Geo_file$Proposed_Site[match(Fish_NCRA2$Station_corrected, Geo_file$Proposed_Station)]
+Fish_NCRA2$Location<-Geo_file$Proposed_Location[match(Fish_NCRA2$Station_corrected, Geo_file$Proposed_Station)]
+Fish_NCRA2$Sector<-Geo_file$Proposed_Sector[match(Fish_NCRA2$Station_corrected, Geo_file$Proposed_Station)]
+Fish_NCRA2$Management_level<-Geo_file$Management_level[match(Fish_NCRA2$Station_corrected, Geo_file$Proposed_Station)]
+Fish_NCRA2$Latitude<-Geo_file$Latitude_old[match(Fish_NCRA2$Station_corrected, Geo_file$Proposed_Station)]
+Fish_NCRA2$Longitude<-Geo_file$Longitude_old[match(Fish_NCRA2$Station_corrected, Geo_file$Proposed_Station)]
+
+# Fills other blanks fields
+#Sector
+Fish_NCRA2 <- Fish_NCRA2 %>%
+  mutate(
+    Sector = case_when(
+      Station_corrected %in% c("Shom1") ~ "Grand Comore",
+      Station_corrected %in% c("Point Ouani", "Djirani") ~ "Moheli Island",
+      TRUE ~ Sector  # keep existing value if not matched
+    )
+  )
+
+# Site
+Fish_NCRA2 <- Fish_NCRA2 %>%
+  mutate(
+    site_corrected = case_when(
+      Station_corrected %in% c("Shom1") ~ "Shomoni",
+      Station_corrected %in% c("Djirani") ~ "Djirani",
+      Station_corrected %in% c("Point Ouani") ~ "Point Ouani",
+      TRUE ~ site_corrected  # keep existing value if not matched
+    )
+  )
+
+
+# Management level
+Fish_NCRA2 <- Fish_NCRA2 %>%
+  mutate(
+    Management_level = case_when(
+      Station_corrected %in% c("Shom1","Djirani","Point Ouani") ~ "Open access",
+      TRUE ~ Management_level  # keep existing value if not matched
+    )
+  )
+
+
+# Latitude
+Fish_NCRA2 <- Fish_NCRA2 %>%
+  mutate(
+    Latitude = case_when(
+      Station_corrected %in% c("Shom1") ~ "-11.64467",
+      Station_corrected %in% c("Djirani") ~ "-12.28323",
+      Station_corrected %in% c("Point Ouani") ~ "-12.24682",
+      TRUE ~ Latitude  # keep existing value if not matched
+    )
+  )
+
+# Longitude
+Fish_NCRA2 <- Fish_NCRA2 %>%
+  mutate(
+    Longitude = case_when(
+      Station_corrected %in% c("Shom1") ~ 43.395,
+      Station_corrected %in% c("Djirani") ~ 43.6221,
+      Station_corrected %in% c("Point Ouani") ~ 43.65845,
+      TRUE ~ Longitude  # keep existing value if not matched
+    )
+  )
+
+
+# Add Sub-national
+unique(Fish_NCRA2$Location)
+Fish_NCRA2$`sub-national`<- Fish_NCRA2$Sector
+
+# Add Eco-region
+Fish_NCRA2$Eco_region<-Fish_NCRA2$`sub-national`
+
+Fish_NCRA2$Organization <- "CORDIO"
+
+# Starndise family names
+Fish_NCRA2%<>%
+  mutate(fish_name = fish_name %>% factor() %>%
+           fct_recode(`Scarinae` = "Scaridae",
+                      `Epinephelidae`     = "Serranidae"))
+
+# Management
+Fish_NCRA2%<>%
+  mutate(Management_level = Management_level %>% factor() %>%
+           fct_recode(`Partially Restricted` = "Partially restricted"))
+
+
+
+```
+
+
+# Format current CORDIO Data 2022-2024
+
+```{r}
+
+Fish_current <- read.csv("../../../data_raw/Fish_site_summary_families_all-years.csv")
+
+# Check Site naming
+# Checked for unmatched site names
+m<-match(Fish_current$Site,Geo_file$Proposed_Site,nomatch = 0)
+unique(Fish_current$Site[m==0])
+
+# make any corrections
+Fish_current%<>%
+  mutate(Site = Site %>% factor() %>%
+           fct_recode(`Memboimboini` = "Memboiboini",
+                      `Mitsamiuli`     = "Mitsamiouli"))
+
+# Add other columns
+Fish_current$Sector<-Geo_file$Proposed_Sector[match(Fish_current$Site, Geo_file$Proposed_Site)]
+Fish_current$`sub-national`<- Fish_current$Sector
+Fish_current$Eco_region<-Fish_current$`sub-national`
+
+# Select for Groupers and Parrotfish
+Fish_current<- Fish_current[Fish_current$Family=="Epinephelidae" | Fish_current$Family=="Scarinae",]
+
+Fish_current$Organization <- "CORDIO"
+
+
+
+```
+
+
+# Format current DAHARI Data 2022-2024
+```{r}
+
+Fish_DAHARI <- read.csv("../../../data_raw/Fishabundance_Site_families_mean_DAHARI.csv")
+
+
+# Checked for unmatched site names
+k<-match(Fish_DAHARI$Site,Geo_file$Proposed_Site,nomatch = 0)
+unique(Fish_DAHARI$Site[k==0])
+
+# Add other columns
+Fish_DAHARI$Sector<-Geo_file$Proposed_Sector[match(Fish_DAHARI$Site, Geo_file$Proposed_Site)]
+Fish_DAHARI$`sub-national`<- Fish_DAHARI$Sector
+Fish_DAHARI$Eco_region<-Fish_DAHARI$`sub-national`
+
+
+# Select for Groupers and Parrotfish
+Fish_DAHARI <- Fish_DAHARI[!is.na(Fish_DAHARI$Family) & 
+                            Fish_DAHARI$Family %in% c("Epinephelidae", "Scarinae"), ]
+
+Fish_DAHARI$Organization <- "DAHARI"
+
+# Management
+Fish_DAHARI%<>%
+  mutate(Management_level = Management_level %>% factor() %>%
+           fct_recode(`Partially Restricted` = "Partially restricted"))
+
+
+```
+
+
+
+# Merge the three Dataset
+
+
+
+# Format and saving output file
+
+```{r}
+
+# Check columns names on both files
+names(Fish_NCRA2)
+names(Fish_current)
+names(Fish_DAHARI)
+
+# Format for issues
+
+
+# Format for Issues
+# old dataset
+names(Fish_NCRA2)[names(Fish_NCRA2)=="fish_name"]<-"family"
+
+#New dataset
+# CORDIO current
+Fish_current$Station <- Fish_current$Site
+Fish_current$Station_corrected <- Fish_current$Site
+Fish_current$site_corrected <- Fish_current$Site
+names(Fish_current)[names(Fish_current)=="Family"]<-"family"
+names(Fish_current)[names(Fish_current)=="Mean_density"]<-"density.ind.ha."
+names(Fish_current)[names(Fish_current)=="sd_d"]<-"sd_density"
+names(Fish_current)[names(Fish_current)=="Mean_biomass"]<-"biomass.kg.ha."
+names(Fish_current)[names(Fish_current)=="sd_b"]<-"sd_biomass"
+
+# DAHARI dataset
+Fish_DAHARI$Station <- Fish_DAHARI$Site
+Fish_DAHARI$Station_corrected <- Fish_DAHARI$Site
+Fish_DAHARI$site_corrected <- Fish_DAHARI$Site
+names(Fish_DAHARI)[names(Fish_DAHARI)=="Family"]<-"family"
+names(Fish_DAHARI)[names(Fish_DAHARI)=="Mean_density"]<-"density.ind.ha."
+names(Fish_DAHARI)[names(Fish_DAHARI)=="sd_d"]<-"sd_density"
+names(Fish_DAHARI)[names(Fish_DAHARI)=="Mean_biomass"]<-"biomass.kg.ha."
+names(Fish_DAHARI)[names(Fish_DAHARI)=="sd_b"]<-"sd_biomass"
+
+
+# Order columns
+# Old
+Fish_NCRA3<-Fish_NCRA2[,c("Country","sub-national","Eco_region",  "Year", "Management_level", "Sector", "Location","Site", "site_corrected", "Station", "Station_corrected","family", "density.ind.ha.","sd_density","biomass.kg.ha.","sd_biomass","Organization")]
+
+#New
+Fish_current2<-Fish_current[,c("Country","sub-national","Eco_region",  "Year", "Management_level", "Sector", "Location","Site", "site_corrected", "Station", "Station_corrected","family", "density.ind.ha.","sd_density","biomass.kg.ha.","sd_biomass","Organization")]
+
+#DAHARI
+Fish_DAHARI2<-Fish_DAHARI[,c("Country","sub-national","Eco_region",  "Year", "Management_level", "Sector", "Location","Site", "site_corrected", "Station", "Station_corrected","family", "density.ind.ha.","sd_density","biomass.kg.ha.","sd_biomass","Organization")]
+
+
+# Merge two files
+Fish_NCRA_complete <- rbind(Fish_NCRA3, Fish_current2, Fish_DAHARI2)
+
+# Rename sub-National and Ecoregion
+Fish_NCRA_complete%<>%
+  mutate(`sub-national` = `sub-national` %>% factor() %>%
+           fct_recode(`Mwali`    = "Moheli island",
+                      `Mwali`    = "Moheli Island",
+                      `Ngazidja` = "Grand Comore",
+                      `Ndzuani`  = "Anjouan Island"))
+
+Fish_NCRA_complete%<>%
+  mutate(Eco_region = Eco_region %>% factor() %>%
+           fct_recode(`Mwali`    = "Moheli island",
+                      `Mwali`    = "Moheli Island",
+                      `Ngazidja` = "Grand Comore",
+                      `Ndzuani`  = "Anjouan Island"))
+
+# Order by years
+Fish_NCRA_complete <- Fish_NCRA_complete %>%
+  arrange(Year, Site)
+
+# Round vaues to 2 decimals
+Fish_NCRA_complete <- Fish_NCRA_complete %>%
+  mutate(
+    `density.ind.ha.` = round(`density.ind.ha.`, 2),
+    sd_density = round(sd_density, 2),
+    `biomass.kg.ha.` = round(`biomass.kg.ha.`, 2),
+    sd_biomass = round(sd_biomass, 2)
+  )
+
+# Save output file
+
+save(Fish_NCRA_complete, file = "../../../data_intermediate/Fish_NCRA_dataset_2025.RDA")
+
+write.csv(Fish_NCRA_complete,"../../../data_intermediate/Fish_NCRA_dataset_2025.csv",row.names = F)
+
+
+```
+
+
+
+
+
+
+
+
+
+
