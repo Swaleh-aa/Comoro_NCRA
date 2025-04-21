@@ -87,7 +87,7 @@ ggplot(Fish_NCRA_complete, aes(x = 1, y = biomass.kg.ha.)) +
   )
 
 
-ggsave("../figures/Explore_National_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
+ggsave("../figures/Fish/Explore_National_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
  
 
 
@@ -121,7 +121,7 @@ ggplot(Fish_NCRA_complete, aes(x = `sub-national`, y = biomass.kg.ha.)) +  # Set
     x = ""
   )
 
-ggsave("../figures/Explore_Regions_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
+ggsave("../figures/Fish/Explore_Regions_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
 
 
 
@@ -153,7 +153,7 @@ ggplot(Fish_NCRA_complete, aes(x = Year, y = biomass.kg.ha.)) +
     x = "Year"
   )
 
-ggsave("../figures/Explore_National_Year_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
+ggsave("../figures/Fish/Explore_National_Year_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
 
 
 # 2d. Boxplot Year Regional -----------------------------------------------
@@ -182,7 +182,7 @@ ggplot(Fish_NCRA_complete, aes(x = Year, y = biomass.kg.ha.)) +
     x = "Year"
   )
 
-ggsave("../figures/Explore_Regional_Year_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
+ggsave("../figures/Fish/Explore_Regional_Year_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
 
 
 
@@ -215,7 +215,7 @@ ggplot(Fish_NCRA_complete, aes(x = Management_level, y = biomass.kg.ha.)) +
     x = "Year"
   )
 
-ggsave("../figures/Explore_National_Management_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
+ggsave("../figures/Fish/Explore_National_Management_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
 
 
 
@@ -245,7 +245,7 @@ ggplot(Fish_NCRA_complete, aes(x = Management_level, y = biomass.kg.ha.)) +
     x = "Year"
   )
 
-ggsave("../figures/Explore_Regional_Management_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
+ggsave("../figures/Fish/Explore_Regional_Management_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
 
 
 

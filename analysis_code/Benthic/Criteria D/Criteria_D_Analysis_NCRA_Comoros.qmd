@@ -128,8 +128,9 @@ current_macor_selected <- current_macor_selected %>%
       )
   )
 
-current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Grand Comore")] <-"Grand Comore Island"
-current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Moheli island")] <-"Moheli Island"
+current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Grand Comore")] <-"Ngazidja"
+current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Moheli island")] <-"Mwali"
+current_macor_selected$ecoregion[which(current_macor_selected$ecoregion=="Anjouan Island")] <-"Ndzuani"
 
 ```
 
@@ -228,6 +229,16 @@ for(i in seq(from = i_min, to = i_max, by = i_interval)) {
   )
 }
 
+
+criterion_d_biotic_disruption_coral_cover_method_b$ecoregion[which(criterion_d_biotic_disruption_coral_cover_method_b$ecoregion=="Grand Comore Island")] <-"Ngazidja"
+criterion_d_biotic_disruption_coral_cover_method_b$ecoregion[which(criterion_d_biotic_disruption_coral_cover_method_b$ecoregion=="Moheli Island")] <-"Mwali"
+criterion_d_biotic_disruption_coral_cover_method_b$ecoregion[which(criterion_d_biotic_disruption_coral_cover_method_b$ecoregion=="Anjouan Island")] <-"Ndzuani"
+
+
+summarized$ecoregion[which(summarized$ecoregion=="Grand Comore Island")] <-"Ngazidja"
+summarized$ecoregion[which(summarized$ecoregion=="Moheli Island")] <-"Mwali"
+summarized$ecoregion[which(summarized$ecoregion=="Anjouan Island")] <-"Ndzuani"
+
     
     
 # summarise
@@ -271,6 +282,20 @@ ecoregion_counts <- dat %>%
 
 dat <- dat %>%
   mutate(iucn_status = factor(iucn_status, levels = c("NT/LC", "VU", "EN", "CR")))
+
+
+dat$ecoregion[which(dat$ecoregion=="Grand Comore Island")] <-"Ngazidja"
+dat$ecoregion[which(dat$ecoregion=="Moheli Island")] <-"Mwali"
+dat$ecoregion[which(dat$ecoregion=="Anjouan Island")] <-"Ndzuani"
+
+ecoregion_counts$ecoregion[which(ecoregion_counts$ecoregion=="Grand Comore Island")] <-"Ngazidja"
+ecoregion_counts$ecoregion[which(ecoregion_counts$ecoregion=="Moheli Island")] <-"Mwali"
+ecoregion_counts$ecoregion[which(ecoregion_counts$ecoregion=="Anjouan Island")] <-"Ndzuani"
+
+dat$ecoregion <- factor(dat$ecoregion, levels = c("Ngazidja", "Ndzuani", "Mwali", "National"))
+
+
+dat_hc <- dat
 
 
 ```
@@ -322,7 +347,7 @@ p1 <- suppressWarnings(
 
 p1
 
-ggsave("HC_RS_ecoregion.png", plot = p1, width = 8, height = 6, dpi = 300)
+ggsave("../../../figures/Benthic/HC_RS_ecoregion.png", plot = p1, width = 8, height = 6, dpi = 300)
 
 
 ```
@@ -380,12 +405,12 @@ viz_data_summary <- viz_data_summary %>%
 # Ensure ecoregion is a factor and map shape_code accordingly
 viz_data_summary <- viz_data_summary %>%
   mutate(
-    ecoregion = factor(ecoregion, levels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")),
+    ecoregion = factor(ecoregion, levels = c("National", "Ngazidja", "Ndzuani", "Mwali")),
     shape_code = case_when(
       ecoregion == "National" ~ 16,  # Solid circle
-      ecoregion == "Anjouan Island" ~ 15,  # Solid square
-      ecoregion == "Grand Comore Island" ~ 17,  # Solid triangle
-      ecoregion == "Moheli Island" ~ 18,  # Solid diamond
+      ecoregion == "Ndzuani" ~ 15,  # Solid square
+      ecoregion == "Ngazidja" ~ 17,  # Solid triangle
+      ecoregion == "Mwali" ~ 18,  # Solid diamond
       TRUE ~ NA_integer_
     )
   )
@@ -397,6 +422,11 @@ colors_class <- c(
   `VU` = "yellow",
   `NT/LC` = "lawngreen"
 )
+
+
+
+viz_data_summary$ecoregion <- factor(viz_data_summary$ecoregion, levels = c("Ngazidja", "Ndzuani", "Mwali", "National"))
+
 
 ```
 
@@ -468,7 +498,7 @@ p_HC <- ggplot() +
 
 p_HC
 
-ggsave("HC_RS_map.png", width = 12, height = 10, dpi = 300, bg = "white")
+ggsave("../../../figures/Benthic/HC_RS_map.png", width = 12, height = 10, dpi = 300, bg = "white")
 
 
 ```
@@ -491,7 +521,7 @@ p2 <- ggplot(viz_data_summary, aes(x = max_severity, y = max_extent, shape = eco
   ) +
   scale_shape_manual(
     values = c(16, 15, 17, 18),  # Shape codes directly mapped
-    labels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")  # Add labels for the legend
+    labels = c("National", "Ngazidja", "Ndzuani", "Mwali")  # Add labels for the legend
   ) +
   scale_color_manual(
     values = colors_class,
@@ -516,7 +546,7 @@ p2 <- ggplot(viz_data_summary, aes(x = max_severity, y = max_extent, shape = eco
 
 p2
 
-ggsave("HC_criteria_D_ecoregion.png", plot = p2, width = 8, height = 6, dpi = 300)
+ggsave("../../../figures/Benthic/HC_criteria_D_ecoregion.png", plot = p2, width = 8, height = 6, dpi = 300)
 
 ```
 
@@ -654,6 +684,11 @@ ecoregion_counts <- dat %>%
 
 dat <- dat %>%
   mutate(iucn_status = factor(iucn_status, levels = c("NT/LC", "VU", "EN", "CR"))) 
+
+
+dat_mcor <- dat
+
+
 ```
 
 ```{r, fig.cap= "Fig. 1; Relative severity for MaCoR by ecoregion, with points color-coded according to IUCN RLE status (NT/LC, VU, EN, CR). The number of data points for each ecoregion is indicated by n"}
@@ -703,7 +738,7 @@ p3 <- suppressWarnings(
 
 p3
 
-ggsave("MaCoR_RS_ecoregion.png", plot = p3, width = 8, height = 6, dpi = 300)
+ggsave("../../../figures/Benthic/MaCoR_RS_ecoregion.png", plot = p3, width = 8, height = 6, dpi = 300)
 
 ```
 
@@ -762,7 +797,7 @@ p_MaCoR <- ggplot() +
 
 p_MaCoR
 
-ggsave("MaCoR_RS_map.png", width = 12, height = 10, dpi = 300, bg = "white")
+ggsave("../../../figures/Benthic/MaCoR_RS_map.png", width = 12, height = 10, dpi = 300, bg = "white")
 ```
 
 ```{r}
@@ -819,12 +854,12 @@ viz_data_summary <- viz_data_summary %>%
 # Ensure ecoregion is a factor and map shape_code accordingly
 viz_data_summary <- viz_data_summary %>%
   mutate(
-    ecoregion = factor(ecoregion, levels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")),
+    ecoregion = factor(ecoregion, levels = c("National", "Ngazidja", "Ndzuani", "Mwali")),
     shape_code = case_when(
       ecoregion == "National" ~ 16,  # Solid circle
-      ecoregion == "Anjouan Island" ~ 15,  # Solid square
-      ecoregion == "Grand Comore Island" ~ 17,  # Solid triangle
-      ecoregion == "Moheli Island" ~ 18,  # Solid diamond
+      ecoregion == "Ndzuani" ~ 15,  # Solid square
+      ecoregion == "Ngazidja" ~ 17,  # Solid triangle
+      ecoregion == "Mwali" ~ 18,  # Solid diamond
       TRUE ~ NA_integer_
     )
   )
@@ -857,7 +892,7 @@ p4 <- ggplot(viz_data_summary, aes(x = max_severity, y = max_extent, shape = eco
   ) +
   scale_shape_manual(
     values = c(16, 15, 17, 18),  # Shape codes directly mapped
-    labels = c("National", "Anjouan Island", "Grand Comore Island", "Moheli Island")  # Add labels for the legend
+    labels = c("National", "Ngazidja", "Ndzuani", "Mwali")  # Add labels for the legend
   ) +
   scale_color_manual(
     values = colors_class,
@@ -882,6 +917,42 @@ p4 <- ggplot(viz_data_summary, aes(x = max_severity, y = max_extent, shape = eco
 
 p4
 
-ggsave("MaCoR_criteria_D_ecoregion.png", plot = p4, width = 8, height = 6, dpi = 300)
+ggsave("../../../figures/Benthic/MaCoR_criteria_D_ecoregion.png", plot = p4, width = 8, height = 6, dpi = 300)
 
 ```
+
+
+
+# Saving csv file - Sites RS values
+
+```{r}
+
+
+# RS values for sites
+
+dat_hc$indicator <- "HC"
+dat_mcor$indicator <- "MaCoR"
+
+# merge
+dat_RS <- rbind(dat_hc, dat_mcor)
+
+# Order columns
+
+dat_RS <- dat_RS[, c("ecoregion", "Site", "lat", "long","indicator", "relative_severity", "iucn_status")]
+
+
+write.csv(dat_RS, "../../../data/RS_values_site_benthic.csv")
+
+
+
+```
+
+
+
+
+
+
+
+
+
+
