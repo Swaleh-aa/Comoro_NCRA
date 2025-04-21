@@ -921,8 +921,6 @@ ggsave("../../../figures/Benthic/MaCoR_criteria_D_ecoregion.png", plot = p4, wid
 
 ```
 
-
-
 # Saving csv file - Sites RS values
 
 ```{r}
@@ -940,19 +938,11 @@ dat_RS <- rbind(dat_hc, dat_mcor)
 
 dat_RS <- dat_RS[, c("ecoregion", "Site", "lat", "long","indicator", "relative_severity", "iucn_status")]
 
+dat_RS <- dat_RS[dat_RS$ecoregion != "National", ]
+
 
 write.csv(dat_RS, "../../../data/RS_values_site_benthic.csv")
 
 
 
 ```
-
-
-
-
-
-
-
-
-
-
