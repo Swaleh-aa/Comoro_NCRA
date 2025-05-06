@@ -238,6 +238,19 @@ Fish_DAHARI%<>%
 
 ```
 
+# Format Reference site dataset
+
+```{r}
+
+Ref_data <- read.csv("../../../data_raw/Kenya_fish_data.csv")
+
+Ref_data<- Ref_data[Ref_data$Eco_region == "Reference",]
+
+
+```
+
+
+
 
 
 # Merge the three Dataset
@@ -252,6 +265,7 @@ Fish_DAHARI%<>%
 names(Fish_NCRA2)
 names(Fish_current)
 names(Fish_DAHARI)
+names(Ref_data)
 
 # Format for issues
 
@@ -280,6 +294,29 @@ names(Fish_DAHARI)[names(Fish_DAHARI)=="Mean_density"]<-"density.ind.ha."
 names(Fish_DAHARI)[names(Fish_DAHARI)=="sd_d"]<-"sd_density"
 names(Fish_DAHARI)[names(Fish_DAHARI)=="Mean_biomass"]<-"biomass.kg.ha."
 names(Fish_DAHARI)[names(Fish_DAHARI)=="sd_b"]<-"sd_biomass"
+
+
+# Reference dataset
+Ref_data$Date <- ""
+Ref_data$Location <- ""
+Ref_data$Management_level <- ""
+Ref_data$Latitude <- ""
+Ref_data$Longitude <- ""
+Ref_data$number_transect <- ""
+Ref_data$sd_biomass <- ""
+Ref_data$se_b <- ""
+Ref_data$sd_density <- ""
+Ref_data$se_d <- ""
+Ref_data$Sector <- ""
+Ref_data$Organization <- ""
+Ref_data$site_corrected <- ""
+names(Ref_data)[names(Ref_data)=="sub.national"]<-"sub-national"
+
+
+
+
+
+
 
 
 # Order columns
@@ -332,7 +369,6 @@ write.csv(Fish_NCRA_complete,"../../../data_intermediate/Fish_NCRA_dataset_2025.
 
 
 ```
-
 
 
 

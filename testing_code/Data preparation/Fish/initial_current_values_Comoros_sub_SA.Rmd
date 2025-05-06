@@ -1,0 +1,441 @@
+---
+title: "RLE fish analysis to determine initial and current values"
+author: "Swaleh Aboud"
+date: '2025-04-22'
+output:
+  html_document:
+    code_folding: hide
+  '': default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = TRUE)
+library(tidyverse)
+library(tibble)
+library(ggpubr)
+library(readxl)
+library(kableExtra)
+library(here)
+library(magrittr)
+```
+
+
+## Loading the data
+We load the density data from Kenya saved as a `csv` format
+```{r message=FALSE}
+#Ensure you import the data from your source directory
+
+load(file = "../../../Exploration/Fish/Format/Tanzania_data.RDA")
+
+
+# Use Kenya dataset to add Reference sites
+Kenya_data<-read.csv("../../../../Kenya/Relative severity/Fish/Initial values/Kenya_data.csv")
+
+# filter eco-region - Reference
+names(Kenya_data)[names(Kenya_data)=="X...Eco_region"] <- "Eco_region"
+
+Ref_data<- Kenya_data[Kenya_data$Eco_region == "Reference",]
+
+# Add column to match with Tanzania data
+names(Ref_data)
+names(Fish_NCRA3)
+
+names(Ref_data)[names(Ref_data)=="MPA"] <- "Management_level"
+names(Fish_NCRA3)[names(Fish_NCRA3)=="sub-national"] <- "sub.national"
+names(Ref_data)[names(Ref_data)=="Eco_region"] <- "Eco_region"
+Ref_data$Sector<-""
+Ref_data$Location <-""
+Ref_data$site_corrected<-""
+
+
+# Add reference site to Tanzania data
+Tanzania_data <- rbind(Fish_NCRA3, Ref_data)
+
+# Change Reference site for the management_level column from Park to NTZ
+
+Tanzania_data$Management_level[which(Tanzania_data$Eco_region=="Reference")]<- "No Take Zone"
+
+Tanzania_data$Management_level[which(Tanzania_data$Management_level=="No take zone")]<-"No Take Zone"
+
+
+# standardize family names from old and new data
+Tanzania_data$family[which(Tanzania_data$family=="Scaridae")]<-"Scarinae"
+Tanzania_data$family[which(Tanzania_data$family=="Serranidae")]<-"Epinephelidae"
+
+## It is expected that all families are surveyed in all stations
+## To ensure this is the case we will fill in zeroe where the family is missing
+
+Tanzania_data<- Tanzania_data%>%pivot_wider(names_from = family, values_from = density.ind.ha., values_fn = {mean}, values_fill = 0) %>% 
+  gather(key = "family", value = "density.ind.ha.", -Eco_region, -Country, - Year, - Management_level,-Sector,-Location, -Site,-site_corrected, -`sub.national`, -Station, -Station_corrected)
+
+# Delete Chumbe_MPA data that does not have density values - values were of Biomass
+
+Tanzania_data<- Tanzania_data[!is.na(Tanzania_data$density.ind.ha.),]
+
+# Mazi Bay sites - A/B/D
+# add management levels - Partially protected
+
+Tanzania_data$Management_level[Tanzania_data$Station_corrected == "MnazA" | Tanzania_data$Station_corrected == "MnazB" | Tanzania_data$Station_corrected == "MnazD" | Tanzania_data$Station_corrected == "MnazE" | Tanzania_data$Station_corrected == "MnazF"] <- "Partially restricted"
+
+# Add Eco-region to Mnazi Bay
+Tanzania_data$Eco_region[Tanzania_data$Station_corrected == "MnazA" | Tanzania_data$Station_corrected == "MnazB" | Tanzania_data$Station_corrected == "MnazD" | Tanzania_data$Station_corrected == "MnazE" | Tanzania_data$Station_corrected == "MnazF"] <- "Mnazi Bay"
+
+Tanzania_data$sub.national[Tanzania_data$Station_corrected == "MnazA" | Tanzania_data$Station_corrected == "MnazB" | Tanzania_data$Station_corrected == "MnazD" | Tanzania_data$Station_corrected == "MnazE" | Tanzania_data$Station_corrected == "MnazF"] <- "Mnazi Bay"
+
+
+```
+
+##QAQC
+
+```{r}
+#check to make sure:
+#1) Each station has the same number of years of data for each family– missing zeros 
+#2) Each station only has a single year of data for each family i.e. there are no duplicates 
+
+#the previous step to pivot_wider has helped to resolve issue 1 
+
+#1)
+Tanzania_data %>% 
+  group_by(Station_corrected, family) %>% 
+  summarise(n_years=n()) %>% 
+  ungroup() %>% 
+  group_by(Station_corrected) %>% 
+  summarise(issues=diff(n_years)) %>% #find the difference between the families
+  filter(issues>0) #if more than 0, there are differences
+
+#2)
+l<-Tanzania_data %>% 
+  group_by(Station_corrected, family,Year) %>% 
+  summarise(n_dups=n()) %>% 
+  filter(n_dups>1) %>% 
+  pull(Station_corrected) %>% unique()  
+
+#identify station_corrected which have duplicates
+
+duplicates <- Tanzania_data %>% 
+  group_by(Station_corrected, family, Year, density.ind.ha.) %>% 
+  filter(n() > 1) # 0
+
+
+
+#find all those stations which have more than value for each year for each family
+Tanzania_data %>% 
+  filter(Station_corrected %in% l) %>% 
+  select(Year, Station, Station_corrected) %>% 
+  distinct() %>% 
+  arrange(Station_corrected, Year) %>% 
+  write.csv("Station_name_changes.csv",row.names = F)
+
+# None
+
+
+
+```
+
+
+# Remove outliers
+
+```{r message=FALSE}
+
+#For groupers any sites with values > 900 indiv. Ha should be excluded due to likely observer errors.
+#For parrotfish any sites with values > 4000 indiv. Ha should be excluded due to likely observer errors.
+#include a 10% rule to the outlier thresholds rather than having a hard cut-off - MS suggested not to add this
+
+# Check for possible outliers
+
+Tanzania_outliers <- Tanzania_data[Tanzania_data$sub.national !="Reference",]
+
+ggplot(Tanzania_outliers, aes(x = factor(sub.national), y = density.ind.ha.)) + 
+  geom_boxplot()+
+  geom_point()+
+  scale_x_discrete(guide = guide_axis(angle = 45)) +
+  facet_wrap(~family,scales = "free_y")+
+  labs(x = "sub national", y = "ind/ha")+
+  theme_bw()
+
+ggsave("outlier_check.png")
+
+outliers <- Tanzania_data %>%
+  filter(family == "Epinephelidae" & density.ind.ha. > 900 | family == "Scarinae" & density.ind.ha. > 4000)
+
+#save
+write.csv(outliers, "outlier_fish_sites.csv", row.names = F)
+
+#remove outliers
+Tanzania_data2<-Tanzania_data %>% 
+    filter (family == "Epinephelidae" & density.ind.ha. <=900 | family == "Scarinae" & density.ind.ha. <=4000)
+
+save(Tanzania_data2, file="cleaned_Tanzania_fish_data.RDA")
+
+
+
+```
+
+
+# create graph of outliers sites
+
+```{r message=FALSE}
+
+# Sites with outliers
+#      Epinephelidae: Changu & Chumbe
+#      Scarinae: Mnemba, Upangu & Kipwani
+
+# Check for possible outliers
+
+site_outliers <- Tanzania_data %>%
+  filter(site_corrected == "Changuu" | site_corrected == "Chumbe" | site_corrected == "Mnemba" | site_corrected == "Upangu" | site_corrected == "Kipwani")
+
+# Add outliers
+site_outliers$outlier <- ""
+site_outliers$outlier[which(site_outliers$family=="Epinephelidae")] <- 900
+site_outliers$outlier[which(site_outliers$family=="Scarinae")] <- 4000
+site_outliers$outlier<- as.numeric(as.character(site_outliers$outlier))
+
+
+ggplot(site_outliers, aes(x = Year, y = density.ind.ha.)) +
+  geom_point() +
+  stat_smooth(se=F)+
+  facet_grid(family~site_corrected, scales = "free")+
+  scale_x_continuous(limits = c(1999, 2009), breaks = seq(1999, 2009, 2))+
+  # Add horizontal lines from df2
+  geom_hline(aes(yintercept = outlier), color = "red")+
+  labs(y= "Mean density [individuals/ha]")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave("Site_outlier_trend.png")
+
+
+
+```
+
+## Grouping and summarising the data 
+We will group  data by sites, years and fish family and summarise the data by mean density.
+
+```{r message=FALSE}
+
+Tanzania_ref_df <- Tanzania_data%>%
+  group_by( family, Eco_region, Management_level, Year, Station_corrected)%>%
+  summarise(mean_den = mean(density.ind.ha.))%>%
+  group_by(family,Eco_region, Management_level)%>%
+  summarise(no_sites = n_distinct(Station_corrected),
+            no_years = n_distinct(Year),
+    density = mean(mean_den),
+    sd = sd(mean_den))
+
+knitr::kable(Tanzania_ref_df)
+
+```
+
+## Stations
+I have corrected some station names under the column `Station_corrected`. These are as follows
+
+``` {r message = FALSE}
+#  corrected_stations<- Tanzania_data%>% group_by(Site, Station_corrected)%>% summarise(n_corrected = n_distinct(Station))%>% filter (n_corrected>1)%>%
+#   mutate(n_corrected = n_corrected-1)
+# 
+# knitr::kable(corrected_stations)
+```
+
+## Initial values based on protected sites and reference sites
+We will work with density data since it was collected continuously.
+
+### National initial values
+Note that these summaries include density values from reference locations.
+```{r message=FALSE}
+
+initial_value <- Tanzania_data%>%filter(Management_level =="No Take Zone")%>%
+  group_by( family, Year, Station_corrected)%>%
+  summarise(mean_den = mean(density.ind.ha.), 
+            n_sites = n_distinct(Station_corrected),
+            n_years = n_distinct(Year))%>%
+  group_by(family)%>%
+  summarise (mean_density = mean (mean_den), sdev = sd(mean_den))
+
+knitr::kable(initial_value)
+
+```
+
+### Ecoregion collapse threshold values
+
+Note that these summaries include density values from reference locations. 
+```{r message=FALSE}
+
+Mnazi_Bay <-  Tanzania_data%>%filter(Eco_region %in% c("Mnazi Bay", "Reference"),
+                                  Management_level == c("No Take Zone"))%>%
+  mutate (Eco_region = "Mnazi Bay") 
+
+Mafia_Songosongo<- Tanzania_data%>%filter(Eco_region %in% c("Mafia-Songosongo", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (Eco_region = "Mafia-Songosongo")
+
+Zanzibar<- Tanzania_data%>%filter(Eco_region %in% c("Zanzibar", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (Eco_region = "Zanzibar")
+
+DaresSalaam<- Tanzania_data%>%filter(Eco_region %in% c("Dar es Salaam", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (Eco_region = "Dar es Salaam")
+
+Tanga<- Tanzania_data%>%filter(Eco_region %in% c("Tanga", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (Eco_region = "Tanga")
+
+
+df<- rbind(Mnazi_Bay,Mafia_Songosongo,Zanzibar,DaresSalaam,Tanga)
+
+  initial_value_eco <- df%>% 
+  group_by(family, Eco_region,Station_corrected)%>%  #create a single site value averaging across all years
+  summarise(mean_den = mean(density.ind.ha.))%>%
+  ungroup() %>% 
+  group_by(family, Eco_region)%>%
+  summarise (no_sites = n_distinct(Station_corrected),
+             # no_years = n_distinct(Year),
+             initial_density = mean (mean_den),
+             sdev = sd(mean_den))%>%
+    mutate(collapse_threshold = ifelse(family =="Scarinae", 0.1*initial_density, 0.2*initial_density))
+
+  knitr::kable(initial_value_eco)
+
+```
+
+
+### Initial values with collapse threshold in red
+```{r message=FALSE, warning=FALSE}
+ggplot(df, aes(x = Year, y = density.ind.ha.)) +
+  geom_point() +
+  stat_smooth()+
+  scale_y_log10() + # add logarithmic scale for y-axis
+  facet_grid(family~Eco_region, scales = "free")+
+  # Add horizontal lines from df2
+  geom_hline(data = initial_value_eco, aes(yintercept = collapse_threshold), color = "red")+
+  labs(y= "Mean density [individuals/ha]")+
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+ggsave("Initial_value_collapse_thresholds.png")
+
+```
+
+
+### Sub-national initial values
+
+Note that these summaries include density values from reference locations. 
+```{r message=FALSE}
+
+Mnazi_Bay <-  Tanzania_data%>%filter(sub.national %in% c("Mnazi Bay", "Reference"),
+                                  Management_level != c("Open access","NA"))%>%
+  mutate (sub.national = "Mnazi Bay")
+
+Mafia_Songosongo<- Tanzania_data%>%filter(sub.national %in% c("Mafia-Songosongo", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (sub.national = "Mafia-Songosongo")
+
+Zanzibar<- Tanzania_data%>%filter(sub.national %in% c("Zanzibar", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (sub.national = "Zanzibar")
+
+DaresSalaam<- Tanzania_data%>%filter(sub.national %in% c("Dar es Salaam", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (sub.national = "Dar es Salaam")
+
+Tanga<- Tanzania_data%>%filter(sub.national %in% c("Tanga", "Reference"),Management_level == "No Take Zone")%>%
+  mutate (sub.national = "Tanga")
+
+
+# kiunga<- Tanzania_data%>%filter(Eco_region %in% c("Kiunga-Lamu", "Reference"),
+#                                   MPA %in% c( "Reserve", "Park"))%>%
+#   mutate (Eco_region = "Kiunga-Lamu")
+
+df2<- rbind(Mnazi_Bay,Mafia_Songosongo,Zanzibar,DaresSalaam,Tanga)
+
+  initial_value_sub <- df2%>% group_by(family, sub.national, Station_corrected)%>%
+  summarise(mean_den = mean(density.ind.ha.))%>%
+  group_by(family, sub.national)%>%
+  summarise (no_sites = n_distinct(Station_corrected),
+             # no_years = n_distinct(Year),
+             initial_density = mean (mean_den),
+             sdev = sd(mean_den))
+  
+  knitr::kable(initial_value_sub)
+  
+```
+
+
+Because of the very large standard deviations associated with some sub-national initial values, it makes sense to calculate a bootstrap 95% confidence interval (CI) using site/station average values for each sub-national zone and using reference values too
+
+```{r bootstrap_CI, eval=TRUE}
+# Fish density initial mean and intervals 
+
+ station_ave<-df2%>% group_by(family, sub.national, Station_corrected)%>%
+  summarise(mean_den = mean(density.ind.ha.))
+
+g<-unique(station_ave$sub.national)
+
+
+mean_fish<-station_ave %>% 
+  group_by(sub.national, family) %>% 
+  summarise(
+    n = n(),
+    mean=mean_den %>% mean() %>% round(1),
+    sd=mean_den %>% sd() %>% round(1),
+    IQR=mean_den %>% IQR() %>% round(1),
+    min=mean_den %>% min()%>% round(1),
+    max=mean_den %>% max()%>% round(1),
+    cv=(sd/mean) %>% round(2)
+  )
+
+
+bootn=10000
+
+boot<-data.frame(matrix(0, nrow=length(g)*2, ncol=bootn))
+boot2<-data.frame(matrix(0, nrow=length(g)*2, ncol=1))
+
+h<-station_ave$family %>% unique()
+
+for (k in 1:2){
+
+for (y in 1:length(g)){
+  
+  sample_data <- station_ave %>%
+  filter(sub.national == g[y], family == h[k]) %>%
+  pull(mean_den)
+ 
+  for(i in 1:bootn){
+      m <- sample(sample_data,replace=T)
+     boot[y,i] <- mean(m) %>% round(1)
+  }
+  
+  if (k==1){
+ boot2$mean[y]<-boot[y,1:bootn] %>% rowMeans() %>% round(1)
+ boot2$lowerCI[y]<-boot[y,1:bootn] %>% as.numeric() %>%  round(1) %>% quantile(c(.025))
+ boot2$upperCI[y]<-boot[y,1:bootn] %>% as.numeric() %>%  quantile(c(.975))  %>% round(1)
+ boot2$sub.national[y]<-g[y]
+ boot2$family[y]<-h[k]
+
+  } else{
+ boot2$mean[y+length(g)]<-boot[y,1:bootn] %>% rowMeans() %>% round(1)
+ boot2$lowerCI[y+length(g)]<-boot[y,1:bootn] %>% as.numeric() %>% quantile(c(.025)) %>%   round(1)
+ boot2$upperCI[y+length(g)]<-boot[y,1:bootn] %>% as.numeric() %>% quantile(c(.975)) %>%  round(1)
+ boot2$sub.national[y+length(g)]<-g[y]
+ boot2$family[y+length(g)]<-h[k]
+  }
+}
+}
+
+mean_fish_table<-mean_fish %>% 
+  left_join(boot2,by = c("sub.national", "family")) %>%
+  mutate(CI=((upperCI-lowerCI)/2)%>% round(1)) %>% 
+  select(sub_national=sub.national,
+         family,
+         n,
+         mean=mean.x,
+         sd,
+         IQR,
+         min,
+         max,
+         cv,
+         lowerCI,
+         upperCI,
+         CI) %>% arrange(family)
+
+kbl(mean_fish_table) %>% kable_classic(html_font = "Calibri") %>%  row_spec(0,bold=TRUE)
+
+write.csv(mean_fish_table,"Criterion_D_fish_baseline.csv",row.names = F)
+
+save(station_ave, file ="fish_sites_initial_values.RDA")
+
+```
+
+
