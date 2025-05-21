@@ -37,11 +37,11 @@ load("../data_intermediate/Fish_NCRA_dataset_2025.RDA")
 
 # Order values
 Fish_NCRA_complete$`sub-national` <- factor(Fish_NCRA_complete$`sub-national`, 
-                                            levels = c("Ngazidja", "Ndzuani", "Mwali"))
+                                            levels = c("Ngazidja", "Ndzuani", "Mwali","Reference"))
 
 
 Fish_NCRA_complete$Management_level <- factor(Fish_NCRA_complete$Management_level, 
-                      levels = c("National Park","Partially Restricted","Open access"))
+                      levels = c("National Park","Partially Restricted","Open access","Reference"))
 
 Fish_NCRA_complete$family <- factor(Fish_NCRA_complete$family, 
                                               levels = c("Scarinae","Epinephelidae"))
@@ -61,23 +61,20 @@ label_data <- subset(Fish_NCRA_complete,
                      (family == "Scarinae" & biomass.kg.ha. > 300) | 
                        (family == "Epinephelidae" & biomass.kg.ha. > 75))
 
-ggplot(Fish_NCRA_complete, aes(x = 1, y = biomass.kg.ha.)) +
-  geom_boxplot(fill = "lightblue", alpha = 0.6, outlier.shape = NA) +
-  geom_jitter(aes(x = label_x), width = 0, alpha = 0.5, color = "darkblue") +
+ggplot(Fish_NCRA_complete, aes(x = Country, y = biomass.kg.ha.)) +
+  geom_boxplot(fill = NA, aes(color = Country), outlier.shape = NA, alpha = 0.6) +
+  geom_jitter(width = 0.15, aes(color = Country), alpha = 0.5, size = 1.5) +
   geom_hline(data = data.frame(family = c("Scarinae", "Epinephelidae"),
                                threshold = c(300, 75)),
-             aes(yintercept = threshold), linetype = "dashed", color = "red") +
-  geom_text(
-    data = label_data,
-    aes(x = label_x, y = biomass.kg.ha., label = paste(site_corrected, Year)),
-    color = "red", size = 3, vjust = -0.7
-  ) +
+             aes(yintercept = threshold), linetype = "dashed", color = "red", inherit.aes = FALSE) +
+  geom_text(data = label_data,
+            aes(x = Country, y = biomass.kg.ha., label = paste(site_corrected, Year)),
+            color = "red", size = 3, vjust = -0.7, inherit.aes = FALSE) +
   facet_wrap(~ family, scales = "free_y") +
   theme_bw() +
   theme(
     legend.position = "none",
     strip.text = element_text(size = 12),
-    axis.text.x = element_blank(),
     axis.ticks.x = element_blank(),
     panel.spacing = unit(1, "lines")
   ) +
@@ -90,7 +87,58 @@ ggplot(Fish_NCRA_complete, aes(x = 1, y = biomass.kg.ha.)) +
 ggsave("../figures/Fish/Explore_National_Biomass_Distribution_Families.png", width = 10, height = 6, dpi = 300)
  
 
+# Initial vs current values
+# Step 1: Create subsets with Group labels
+current_values <- Fish_NCRA_complete %>%
+  filter(Year >= 2016 & Year <= 2024) %>%
+  mutate(Group = "Current \n (2016-2024)")
 
+initial_complete <- Fish_NCRA_complete %>%
+  filter(Eco_region == "Reference" | (Eco_region == "Mwali" & Year == 2018)) %>%
+  mutate(Group = "Initial \n (Complete)")
+
+initial_reference <- Fish_NCRA_complete %>%
+  filter(Eco_region == "Reference") %>%
+  mutate(Group = "Initial \n (Reference)")
+
+mwali_2018 <- Fish_NCRA_complete %>%
+  filter(Eco_region == "Mwali" & Year == 2018) %>%
+  mutate(Group = "Moheli \n (2018)")
+
+# Step 2: Combine all data
+combined_data <- bind_rows(current_values, initial_complete, initial_reference, mwali_2018)
+
+# Step 3: Order groups by mean biomass
+group_means <- combined_data %>%
+  group_by(Group) %>%
+  summarise(mean_biomass = mean(biomass.kg.ha., na.rm = TRUE)) %>%
+  arrange(mean_biomass)
+
+# Reorder Group factor levels
+combined_data$Group <- factor(combined_data$Group, levels = group_means$Group)
+
+# Step 4: Plot
+ggplot(combined_data, aes(x = Group, y = biomass.kg.ha.)) +
+  geom_boxplot(aes(color = Group), fill = NA, outlier.shape = NA) +
+  geom_jitter(aes(color = Group), width = 0.2, alpha = 0.6, size = 1.5) +
+  stat_summary(fun = mean, geom = "point", shape = 18, size = 3.5, color = "black") +
+  facet_wrap(~ family, scales = "free_y") +
+  theme_bw() +
+  labs(y = "Biomass (kg/ha)") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "none",
+        axis.title.x = element_blank())
+
+
+ggsave("../figures/Fish/Explore_Initial_current_values.png", width = 10, height = 6, dpi = 300)
+
+summar_comoros <- combined_data %>%
+  group_by(Group) %>%
+  summarise(average = round(mean(biomass.kg.ha.),2),
+            sd = round(sd(biomass.kg.ha.),2),
+            se = round(std.error(biomass.kg.ha.),2),
+            minimum = min(biomass.kg.ha.),
+            maximum = max(biomass.kg.ha.))
 
 # 2b. Boxplot Eco_region --------------------------------------------------
 

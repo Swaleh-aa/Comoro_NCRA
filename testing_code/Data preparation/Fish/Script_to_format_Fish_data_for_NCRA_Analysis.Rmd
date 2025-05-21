@@ -242,22 +242,124 @@ Fish_DAHARI%<>%
 
 ```{r}
 
-Ref_data <- read.csv("../../../data_raw/Kenya_fish_data.csv")
+# Chagos
+chagos_data <- read_excel("../../../data_raw/Grouper parrotfish metrics_summaries _threshold_simplified_KO_MS16jan.xlsx", 
+    sheet = "Chagos")
 
-Ref_data<- Ref_data[Ref_data$Eco_region == "Reference",]
+chagos_data <- chagos_data[-c(1:18, 34:36),]
+chagos_data <- chagos_data[, c(1,9,10,11,12)]
+
+
+# Restructure the dataset
+# Start from row 3 (actual data)
+chagos_cleaned <- chagos_data[3:nrow(chagos_data), ]
+
+# Set column names using row 2
+colnames(chagos_cleaned) <- chagos_data[2, ]
+
+# Rename the first column
+colnames(chagos_cleaned)[1] <- "Station_corrected"
+
+# Ensure all column names are unique
+names(chagos_cleaned) <- make.names(names(chagos_cleaned), unique = TRUE)
+
+# Restructure to long format
+chagos_long <- chagos_cleaned %>%
+  mutate(
+    Scarinae_density = as.numeric(Density),
+    Scarinae_biomass = as.numeric(Biomass),
+    Epinephelidae_density = as.numeric(Density.1),
+    Epinephelidae_biomass = as.numeric(Biomass.1)
+  ) %>%
+  select(Station_corrected,
+         Scarinae_density, Scarinae_biomass,
+         Epinephelidae_density, Epinephelidae_biomass) %>%
+  pivot_longer(cols = -Station_corrected,
+               names_to = c("family", ".value"),
+               names_sep = "_")
+
+# Rename the other column
+colnames(chagos_long)[3] <- "density.ind.ha."
+colnames(chagos_long)[4] <- "biomass.kg.ha."
+
+# Add Location
+chagos_long$Location <- "Chagos Islands"
+
+
+
+# Gloriuse
+# Chagos
+gloriuse_data <- read_excel("../../../data_raw/Grouper parrotfish metrics_summaries _threshold_simplified_KO_MS16jan.xlsx", 
+    sheet = "Glorieuses")
+
+gloriuse_data <- gloriuse_data[c(10,11,15, 16),] #select rows
+gloriuse_data <- gloriuse_data[-c(14:17)] #select rows
+
+
+# Restructure
+
+# Keep only the data rows from row 3 onward
+gloriuse_clean <- gloriuse_data[3:nrow(gloriuse_data), ]
+names(gloriuse_clean)[1] <- "family"
+
+# Extract station names from the second row, skipping first column
+station_names <- gloriuse_data[2, -1] |> unlist() |> as.character()
+
+# Identify all station pairs (density + biomass)
+n_pairs <- length(station_names) / 2  # since each station has 2 columns
+
+# Initialize list
+long_data_list <- list()
+
+for (i in seq_len(n_pairs)) {
+  # Identify the column positions for this station's density and biomass
+  dens_col <- 2 * i      # even column
+  bio_col <- 2 * i + 1   # next column (odd)
+  
+  station <- station_names[dens_col - 1]  # get station name (e.g., "Glo15.1")
+  
+  df <- gloriuse_clean %>%
+    select(family, density = dens_col, biomass = bio_col) %>%
+    mutate(
+      Station_corrected = station
+    )
+  
+  long_data_list[[i]] <- df
+}
+
+# Combine and clean
+gloriuse_final <- bind_rows(long_data_list) %>%
+  mutate(
+    Mean_density = as.numeric(density),
+    Mean_biomass = as.numeric(biomass)
+  ) %>%
+  select(Station_corrected, family, Mean_density, Mean_biomass)
+
+# Rename the other column
+colnames(gloriuse_final)[3] <- "density.ind.ha."
+colnames(gloriuse_final)[4] <- "biomass.kg.ha."
+
+# Add Location
+gloriuse_final$Location <- "Glorieuses Islands"
+
+
+# Bind the 2
+Ref_data<- rbind(gloriuse_final, chagos_long)
+
+# Rename family names
+Ref_data <- Ref_data %>%
+  mutate(family = case_when(
+    family == "Scaridae"      ~  "Scarinae",
+    family == "Serranidae"  ~  "Epinephelidae",
+    TRUE                      ~ family
+  ))
 
 
 ```
 
 
-
-
-
-# Merge the three Dataset
-
-
-
-# Format and saving output file
+# Merge the four Dataset
+ # Format and saving output file
 
 ```{r}
 
@@ -298,8 +400,9 @@ names(Fish_DAHARI)[names(Fish_DAHARI)=="sd_b"]<-"sd_biomass"
 
 # Reference dataset
 Ref_data$Date <- ""
+Ref_data$Year <- ""
 Ref_data$Location <- ""
-Ref_data$Management_level <- ""
+Ref_data$Management_level <- "Reference"
 Ref_data$Latitude <- ""
 Ref_data$Longitude <- ""
 Ref_data$number_transect <- ""
@@ -307,17 +410,16 @@ Ref_data$sd_biomass <- ""
 Ref_data$se_b <- ""
 Ref_data$sd_density <- ""
 Ref_data$se_d <- ""
-Ref_data$Sector <- ""
+Ref_data$Sector <- "Reference"
 Ref_data$Organization <- ""
+Ref_data$site_corrected <- Ref_data$Station_corrected
+Ref_data$Country <- "Reference"
+Ref_data$Site <- Ref_data$Station_corrected
 Ref_data$site_corrected <- ""
-names(Ref_data)[names(Ref_data)=="sub.national"]<-"sub-national"
-
-
-
-
-
-
-
+Ref_data$Station <- Ref_data$Station_corrected
+Ref_data$Organization <- "CORDIO"
+Ref_data$Eco_region <- "Reference"
+Ref_data$`sub-national` <- "Reference"
 
 # Order columns
 # Old
@@ -329,30 +431,41 @@ Fish_current2<-Fish_current[,c("Country","sub-national","Eco_region",  "Year", "
 #DAHARI
 Fish_DAHARI2<-Fish_DAHARI[,c("Country","sub-national","Eco_region",  "Year", "Management_level", "Sector", "Location","Site", "site_corrected", "Station", "Station_corrected","family", "density.ind.ha.","sd_density","biomass.kg.ha.","sd_biomass","Organization")]
 
+#Reference
+Ref_data2<-Ref_data[,c("Country","sub-national","Eco_region",  "Year", "Management_level", "Sector", "Location","Site", "site_corrected", "Station", "Station_corrected","family", "density.ind.ha.","sd_density","biomass.kg.ha.","sd_biomass","Organization")]
 
-# Merge two files
-Fish_NCRA_complete <- rbind(Fish_NCRA3, Fish_current2, Fish_DAHARI2)
+
+# Merge four files
+Fish_NCRA_complete <- rbind(Fish_NCRA3, Fish_current2, Fish_DAHARI2, Ref_data2)
 
 # Rename sub-National and Ecoregion
-Fish_NCRA_complete%<>%
-  mutate(`sub-national` = `sub-national` %>% factor() %>%
-           fct_recode(`Mwali`    = "Moheli island",
-                      `Mwali`    = "Moheli Island",
-                      `Ngazidja` = "Grand Comore",
-                      `Ndzuani`  = "Anjouan Island"))
+Fish_NCRA_complete %<>%
+  mutate(
+    `sub-national` = recode_factor(`sub-national`,
+                                   "Moheli island" = "Mwali",
+                                   "Moheli Island" = "Mwali",
+                                   "Grand Comore" = "Ngazidja",
+                                   "Anjouan Island" = "Ndzuani"))
 
-Fish_NCRA_complete%<>%
-  mutate(Eco_region = Eco_region %>% factor() %>%
-           fct_recode(`Mwali`    = "Moheli island",
-                      `Mwali`    = "Moheli Island",
-                      `Ngazidja` = "Grand Comore",
-                      `Ndzuani`  = "Anjouan Island"))
+Fish_NCRA_complete %<>%
+  mutate(
+    Eco_region = recode_factor(Eco_region,
+                                "Moheli island" = "Mwali",
+                                "Moheli Island" = "Mwali",
+                                "Grand Comore" = "Ngazidja",
+                                "Anjouan Island" = "Ndzuani")
+  )
+
 
 # Order by years
 Fish_NCRA_complete <- Fish_NCRA_complete %>%
   arrange(Year, Site)
 
 # Round vaues to 2 decimals
+Fish_NCRA_complete$sd_biomass <- as.numeric(as.character(Fish_NCRA_complete$sd_biomass))
+
+Fish_NCRA_complete$sd_density <- as.numeric(as.character(Fish_NCRA_complete$sd_density))
+
 Fish_NCRA_complete <- Fish_NCRA_complete %>%
   mutate(
     `density.ind.ha.` = round(`density.ind.ha.`, 2),
