@@ -61,30 +61,34 @@ Fish_NCRA2$Station_corrected<-Fish_NCRA2$Station
 Fish_NCRA2%<>%
   mutate(Station_corrected = Station_corrected %>% factor() %>%
            fct_recode(`Bwana_Iddi` = "Bwanaidi",
-                      `Mirereni` = "Mereni",
+                      `MW_D_P_SC13` = "Mereni",
+                      `MW_D_P_SC14` = "Mirereni",
                       `Sambia_West` = "Sambia_Reserve",
-                       Chin_02 = "Chindini",
+                       Chin_04 = "Chindini",
                        Barakani = "Itsandra", 
                        Moindzaza = "Moindzzaza",
-                       Shom1 = "Shomoni"
+                       Shiroroni = "Shomoni"
                       ))
-
-
 
 Fish_NCRA2 <- Fish_NCRA2 %>%
   mutate(
     Station_corrected = case_when(
       Site_id == "Comoros,Anjouan,A"         ~ "Mtsaka",
       Site_id == "Comoros,Grand_Comore,A"    ~ "GC_A_P_SC05",
-      Site_id == "Comoros,Moheli,A"          ~ "Point Ouani",
+      Site_id == "Comoros,Moheli,A"          ~ "MW_A_P_SC19",
       Site_id == "Comoros,Anjouan,B"         ~ "Habwanajibou_01",
       Site_id == "Comoros,Grand_Comore,B"    ~ "MW_E_P_SC10",
-      Site_id %in% c("Comoros,Moheli,B_-_N", "Comoros,Moheli,B_-_S") ~ "Djirani",
+      Site_id %in% c("Comoros,Moheli,B_-_N", "Comoros,Moheli,B_-_S") ~ "MW_B_P_SC16",
       Site_id == "Comoros,Moheli,D"          ~ "Mea",
       Site_id == "Comoros,Moheli,E"          ~ "Ferenga",
       TRUE                                    ~ Station_corrected  # Keep existing if no match
     )
   )
+
+# check again
+# Checked for unmatched site names
+h<-match(Fish_NCRA2$Station_corrected,Geo_file$Proposed_Station,nomatch = 0)
+unique(Fish_NCRA2$Station_corrected[h==0])
 
 
 # Add other columns
@@ -188,10 +192,10 @@ m<-match(Fish_current$Site,Geo_file$Proposed_Site,nomatch = 0)
 unique(Fish_current$Site[m==0])
 
 # make any corrections
-Fish_current%<>%
-  mutate(Site = Site %>% factor() %>%
-           fct_recode(`Memboimboini` = "Memboiboini",
-                      `Mitsamiuli`     = "Mitsamiouli"))
+# Fish_current%<>%
+#   mutate(Site = Site %>% factor() %>%
+#            fct_recode(`Memboimboini` = "Memboiboini",
+#                       `Mitsamiuli`     = "Mitsamiouli"))
 
 # Add other columns
 Fish_current$Sector<-Geo_file$Proposed_Sector[match(Fish_current$Site, Geo_file$Proposed_Site)]
@@ -265,18 +269,22 @@ names(chagos_cleaned) <- make.names(names(chagos_cleaned), unique = TRUE)
 
 # Restructure to long format
 chagos_long <- chagos_cleaned %>%
-  mutate(
+  dplyr::mutate(
     Scarinae_density = as.numeric(Density),
     Scarinae_biomass = as.numeric(Biomass),
     Epinephelidae_density = as.numeric(Density.1),
     Epinephelidae_biomass = as.numeric(Biomass.1)
   ) %>%
-  select(Station_corrected,
-         Scarinae_density, Scarinae_biomass,
-         Epinephelidae_density, Epinephelidae_biomass) %>%
-  pivot_longer(cols = -Station_corrected,
-               names_to = c("family", ".value"),
-               names_sep = "_")
+  dplyr::select(
+    Station_corrected,
+    Scarinae_density, Scarinae_biomass,
+    Epinephelidae_density, Epinephelidae_biomass
+  ) %>%
+  tidyr::pivot_longer(
+    cols = -Station_corrected,
+    names_to = c("family", ".value"),
+    names_sep = "_"
+  )
 
 # Rename the other column
 colnames(chagos_long)[3] <- "density.ind.ha."
@@ -319,21 +327,24 @@ for (i in seq_len(n_pairs)) {
   station <- station_names[dens_col - 1]  # get station name (e.g., "Glo15.1")
   
   df <- gloriuse_clean %>%
-    select(family, density = dens_col, biomass = bio_col) %>%
-    mutate(
+    dplyr::select(family, 
+                  density = !!sym(names(gloriuse_clean)[dens_col]), 
+                  biomass = !!sym(names(gloriuse_clean)[bio_col])) %>%
+    dplyr::mutate(
       Station_corrected = station
     )
   
   long_data_list[[i]] <- df
 }
 
+
 # Combine and clean
-gloriuse_final <- bind_rows(long_data_list) %>%
-  mutate(
+gloriuse_final <- dplyr::bind_rows(long_data_list) %>%
+  dplyr::mutate(
     Mean_density = as.numeric(density),
     Mean_biomass = as.numeric(biomass)
   ) %>%
-  select(Station_corrected, family, Mean_density, Mean_biomass)
+  dplyr::select(Station_corrected, family, Mean_density, Mean_biomass)
 
 # Rename the other column
 colnames(gloriuse_final)[3] <- "density.ind.ha."
@@ -479,6 +490,124 @@ Fish_NCRA_complete <- Fish_NCRA_complete %>%
 save(Fish_NCRA_complete, file = "../../../data_intermediate/Fish_NCRA_dataset_2025.RDA")
 
 write.csv(Fish_NCRA_complete,"../../../data_intermediate/Fish_NCRA_dataset_2025.csv",row.names = F)
+
+
+```
+
+# Initial value file
+
+```{r}
+
+# Filter for initia values
+initial_values <- Fish_NCRA_complete %>%
+  dplyr::filter(
+    Eco_region == "Reference" |
+      (Eco_region == "Mwali" & Year == 2018)
+  )
+
+# Calculate baseline values
+
+# Group by family and compute overall mean and SD
+baseline_stats <- initial_values %>%
+  dplyr::group_by(family) %>%
+  dplyr::summarise(
+    baseline_mean = mean(biomass.kg.ha., na.rm = TRUE),
+    baseline_sd = sd(biomass.kg.ha., na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Define ecoregions to assign
+ecoregions <- c("Moheli Island", "Grand Comore Island", "Anjoun Island", "National")
+
+# Step 3: Expand and assign ecoregions to each family row
+baseline_comoros <- tidyr::expand_grid(
+  eco_rgn = ecoregions,
+  baseline_stats
+) %>%
+  dplyr::select(eco_rgn, fish = family, baseline_mean, baseline_sd)
+
+
+# Save file
+save(baseline_comoros, file = "../../../data_intermediate/Criteria_D_fish_baseline_ref.rda")
+
+
+```
+
+# Current values file
+
+```{r}
+
+# Select values from 2016
+current_values <- Fish_NCRA_complete %>%
+  dplyr::filter(Year >= "2016")
+
+# Create site_id
+current_values <- current_values %>%
+  mutate(
+    site_id = str_c(Country, Eco_region, Sector, site_corrected, sep = "_")
+  )
+
+# Get first and recent year per site_id
+year_info <- current_values %>%
+  group_by(site_id) %>%
+  summarise(
+    first_year = min(as.numeric(Year), na.rm = TRUE),
+    recent_year = max(as.numeric(Year), na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Compute current and recent biomass per site_id and eco_region
+biomass_info <- current_values %>%
+  group_by(site_id, Eco_region, family, Year) %>%
+  summarise(
+    avg_biom = mean(as.numeric(biomass.kg.ha.), na.rm = TRUE),
+    .groups = "drop"
+  )
+
+# Get average over all years (current_biom)
+current_biom <- biomass_info %>%
+  group_by(site_id, Eco_region, family) %>%
+  summarise(current_biom = mean(avg_biom, na.rm = TRUE), .groups = "drop")
+
+# Get most recent year (recent_biom)
+recent_biom <- biomass_info %>%
+  inner_join(year_info, by = "site_id") %>%
+  filter(Year == recent_year) %>%
+  dplyr::select(site_id, recent_biom = avg_biom, family)
+
+# Prepare threshold data
+thresholds <- baseline_comoros %>%
+  mutate(
+    threshold_ref_max = case_when(
+      fish == "Scarinae" ~ baseline_mean * 0.1,
+      fish == "Epinephelidae" ~ baseline_mean * 0.2,
+      TRUE ~ NA_real_
+    )
+  ) %>%
+  dplyr::select(fish, threshold_ref_max)
+
+fish_current_values <- current_values %>%
+  dplyr::select(site_id, Eco_region, family) %>%
+  distinct() %>%  # keep only one row per site_id/ecoregion/fish
+  left_join(current_biom, by = c("site_id", "Eco_region", "family")) %>%
+  left_join(recent_biom, by = c("site_id", "family")) %>%
+  left_join(year_info, by = "site_id") %>%
+  rename(eco_rgn = Eco_region, fish = family) %>%
+  left_join(thresholds, by = "fish") %>%
+  mutate(
+    threshold_ref_min = NA,
+    fish = recode(fish,
+                  "Epinephelidae" = "Groupers",
+                  "Scarinae" = "Parrotfish")
+  ) %>%
+  dplyr::select(eco_rgn, site_id, first_year, recent_year,
+         current_biom, recent_biom,
+         threshold_ref_max, threshold_ref_min, fish) %>%
+  distinct()  # <- this line ensures final output has no duplicates
+
+
+# Save file
+save(fish_current_values, file = "../../../data_intermediate/Criteria_D_fish_data_table.rda")
 
 
 ```
