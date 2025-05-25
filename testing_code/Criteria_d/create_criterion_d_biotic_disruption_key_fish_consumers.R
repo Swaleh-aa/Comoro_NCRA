@@ -252,13 +252,14 @@
 ## 4. Review results
 ##
   # summarise
-    a <- create_criterion_d_biotic_disruption_key_fish_consumers %>%
+    create_criterion_iteration_summary_fish <- create_criterion_d_biotic_disruption_key_fish_consumers %>%
       group_by(Ecoregion,
                fish,
                Method,
                status) %>%
       summarise(n_categories = n()) %>%
       mutate(percent = 100 * n_categories / sum(n_categories))
+
 # `summarise()` has grouped output by 'Ecoregion', 'fish',
 # 'Method'. You can override using the `.groups` argument.
 # # A tibble: 122 × 6
@@ -266,14 +267,14 @@
    # Ecoregion fish    Method  status n_categories percent
    # <chr>     <chr>   <chr>   <chr>         <int>   <dbl>
  # 1 Comoros   grouper ref_max CR              525  70
- # 2 Comoros   grouper ref_max EN                7   0.933
+ # 2 Comoros   grouper ref_max EN                7  0.933
  # 3 Comoros   grouper ref_max LC              211  28.1
- # 4 Comoros   grouper ref_max VU                7   0.933
+ # 4 Comoros   grouper ref_max VU                7  0.933
  # 5 Comoros   grouper ref_min CR              523  69.7
- # 6 Comoros   grouper ref_min EN                7   0.933
+ # 6 Comoros   grouper ref_min EN                7  0.933
  # 7 Comoros   grouper ref_min LC              211  28.1
- # 8 Comoros   grouper ref_min VU                9   1.2
- # 9 Comoros   grouper <NA>    LC              750 100
+ # 8 Comoros   grouper ref_min VU                9  1.2
+ # 9 Comoros   grouper <NA>    LC              750  100
 # 10 Comoros   parrot  ref_max CR              523  69.7
 # # ℹ 112 more rows
 # # ℹ Use `print(n = ...)` to see more rows
@@ -282,14 +283,13 @@
 ##
 ## 5. Generate outputs
 ##
-  # point to save locale
-    save_locale <- "data_intermediate/criteria/"
+  save(create_criterion_d_biotic_disruption_key_fish_consumers,
+         file = "data_intermediate/Criteria_D_RS/create_criterion_d_biotic_disruption_key_fish_consumers.rda")
+  
+  save(create_criterion_iteration_summary_fish,
+       file = "data_intermediate/Criteria_D_RS/create_criterion_d_iterations_fish.rda")
 
-  # save to file
-    save(create_criterion_d_biotic_disruption_key_fish_consumers,
-      file = paste0(save_locale, "create_criterion_d_biotic_disruption_key_fish_consumers.rda"))
-
-
+  
 ##
 ## 6. Clean up workspace
 ##
