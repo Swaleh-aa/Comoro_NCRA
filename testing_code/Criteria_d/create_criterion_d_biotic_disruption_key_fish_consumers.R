@@ -295,12 +295,7 @@
 # # ℹ Use `print(n = ...)` to see more rows
 
   # summarise
-<<<<<<< HEAD
-    create_criterion_iteration_summary_fish <- create_criterion_d_biotic_disruption_key_fish_consumers %>%
-=======
-    a <- 
-    criterion_d_biotic_disruption_key_fish_consumers %>%
->>>>>>> d06fe93b61794dd34527508410236fb9ad8c523f
+    create_criterion_iteration_summary_fish <- criterion_d_biotic_disruption_key_fish_consumers %>%
       group_by(Ecoregion,
                fish,
                Method,
@@ -332,37 +327,11 @@
 ##
 ## 5. Generate outputs
 ##
-<<<<<<< HEAD
   save(create_criterion_d_biotic_disruption_key_fish_consumers,
          file = "data_intermediate/Criteria_D_RS/create_criterion_d_biotic_disruption_key_fish_consumers.rda")
   
   save(create_criterion_iteration_summary_fish,
        file = "data_intermediate/Criteria_D_RS/create_criterion_d_iterations_fish.rda")
-=======
-  # point to save locale
-    save_locale <- "data_intermediate/criteria/"
-
-  # save to file
-    save(criterion_d_biotic_disruption_key_fish_consumers,
-      file = paste0(save_locale, "criterion_d_biotic_disruption_key_fish_consumers.rda"))
-
->>>>>>> d06fe93b61794dd34527508410236fb9ad8c523f
-
   
-##
-## 6. Clean up workspace
-##
-  # remove paths
-    rm(data_locale,
-       data_file,
-       save_locale)
-
-  # remove intermediate objects
-    rm(i_min,
-       i_max,
-       i_interval,
-       threat_conversions)
-
-  # remove core objects
-    rm(criterion_d_biotic_disruption_key_fish_consumers)
+  
 
