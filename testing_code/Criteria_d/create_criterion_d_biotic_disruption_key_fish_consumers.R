@@ -33,10 +33,10 @@
 ##              Output saved as *.rda
 ##
 ##
-##  Authors:    Franz Smith & Mishal Gudka
+##  Authors:    Swaleh Aboud
 ##              CORDIO East Africa
 ##
-##  Date:       2024-03-29
+##  Date:       2025-05-24
 ##
 
 ##  Notes:      1. Only evaluating two of the threshold models:
@@ -48,71 +48,51 @@
 ## 1. Set up
 ##
  ## -- call to fish baseline reference min & max -- ##
-  # point to data locale
-    data_locale <- "data_raw/biological/fishes/"
 
-  # set data file name
-    data_file <- "Criterion_D_fish_baseline_ref.xlsx"
+  load("data_intermediate/Criteria_D_fish_baseline_ref.rda")
+  load("data_intermediate/Criteria_D_fish_data_table.rda")
 
-  # call to data
-    fish_baseline_reference <-
-      paste0(data_locale, data_file) %>%
-        read_xlsx()
-
-
- ## -- call to fish data table -- ##
-  # point to data locale
-    data_locale <- "data_raw/biological/fishes/"
-
-  # set data file name
-    data_file <- "Crit_D_fish_data_table.xlsx"
-
-  # call to data
-    fish_data_table <-
-      paste0(data_locale, data_file) %>%
-        read_xlsx()
-
-##
+    ##
 ## 2. Groom data
 ##
   # review reference data
-    fish_baseline_reference
-# # A tibble: 13 × 4
-   # eco_rgn                   fish    baseline_mean baseline_sd
-   # <chr>                     <chr>           <dbl>       <dbl>
- # 1 N Tanzania-Kenya          grouper         179.         441.
- # 2 Mascarene Isl.            grouper          77.2        269.
- # 3 Comoros                   grouper         379.         649.
- # 4 Seychelles north          grouper         168.         377.
- # 5 West Madagascar           grouper         235.         605.
- # 6 Delagoa                   grouper        1390.        3067.
- # 7 N Mozambique - S Tanzania grouper         253.         580.
- # 8 N Tanzania-Kenya          parrot          629.         740.
- # 9 Comoros                   parrot          493.         300.
-# 10 Seychelles north          parrot          915.         729.
-# 11 West Madagascar           parrot          310.         322.
-# 12 Delagoa                   parrot          502.         304.
-# 13 N Mozambique - S Tanzania parrot          867.         736.
+  baseline_comoros <- baseline_comoros %>%
+    dplyr::mutate(fish = dplyr::recode(fish,
+                           "Scarinae" = "Parrotfish",
+                           "Epinephelidae" = "Groupers"))
+      
+    baseline_comoros
+    # # A tibble: 8 × 4
+    # eco_rgn             fish       baseline_mean baseline_sd
+    # <chr>               <fct>              <dbl>       <dbl>
+    # 1 Moheli Island       Parrotfish          334.        307.
+    # 2 Moheli Island       Groupers            139.        141.
+    # 3 Grand Comore Island Parrotfish          334.        307.
+    # 4 Grand Comore Island Groupers            139.        141.
+    # 5 Anjoun Island       Parrotfish          334.        307.
+    # 6 Anjoun Island       Groupers            139.        141.
+    # 7 National            Parrotfish          334.        307.
+    # 8 National            Groupers            139.        141.
 
   # review data table
-    fish_data_table
-# # A tibble: 368 × 9
-   # eco_rgn site_id     first_year recent_year current_den recent_den
-   # <chr>   <chr>            <dbl>       <dbl>       <dbl>      <dbl>
- # 1 Comoros Mayotte;Do…       2018        2018         180        180
- # 2 Comoros Mayotte;Do…       2018        2018         200        200
- # 3 Comoros Mayotte;Do…       2018        2018          60         60
- # 4 Comoros Mayotte;Do…       2018        2018          40         40
- # 5 Comoros Mayotte;Gr…       2018        2018         120        120
- # 6 Comoros Mayotte;Lo…       2018        2018          20         20
- # 7 Comoros Mayotte;Pa…       2018        2018        2840       2840
- # 8 Comoros Mayotte;Pa…       2013        2013         880        880
- # 9 Comoros Mayotte;Pa…       2013        2018        5490       9400
-# 10 Comoros Mayotte;Pr…       2018        2018         140        140
-# # ℹ 358 more rows
-# # ℹ 3 more variables: threshold_ref_max <dbl>,
-# #   threshold_ref_min <dbl>, fish <chr>
-# # ℹ Use `print(n = ...)` to see more rows
+    fish_current_values
+    # # A tibble: 85 × 9
+    # eco_rgn site_id             first_year recent_year current_biom recent_biom
+    # <fct>   <chr>                    <dbl>       <dbl>        <dbl>       <dbl>
+    #   1 Mwali   Comoros_Mwali_Mohe…       2016        2016         74          74  
+    # 2 Mwali   Comoros_Mwali_Mohe…       2016        2016         12          12  
+    # 3 Mwali   Comoros_Mwali_Mohe…       2016        2016         44          44  
+    # 4 Mwali   Comoros_Mwali_Mohe…       2016        2016         64          64  
+    # 5 Mwali   Comoros_Mwali_Mohe…       2016        2016         20          20  
+    # 6 Mwali   Comoros_Mwali_Mohe…       2016        2016         38          38  
+    # 7 Mwali   Comoros_Mwali_Mohe…       2016        2018        167.        292. 
+    # 8 Mwali   Comoros_Mwali_Mohe…       2016        2018         45.8        71.5
+    # 9 Mwali   Comoros_Mwali_Mohe…       2016        2016         86          86  
+    # 10 Mwali   Comoros_Mwali_Mohe…       2016        2016         13          13  
+    # # ℹ 75 more rows
+    # # ℹ 3 more variables: threshold_ref_max <dbl>, threshold_ref_min <lgl>,
+    # #   fish <fct>
+    # # ℹ Use `print(n = ...)` to see more rows
 
 ##
 ## 3. Evaluate criterion
@@ -148,7 +128,7 @@
      ## -- first with baseline model -- ##
       # randomly assign baseline values
         baseline_bio <-
-          fish_baseline_reference %>%
+          baseline_comoros %>%
             dplyr::filter(!baseline_mean %>% is.na()) %>%
            group_by(eco_rgn) %>%
            mutate(baseline_random = rnorm(1, mean = baseline_mean,
@@ -158,40 +138,52 @@
         baseline_bio %<>%
           mutate(baseline_random = ifelse(baseline_random < 0, 0, baseline_random))
 
-      # set iteration & method
-        baseline_bio %<>%
-          mutate(Iteration = i)
-
-
-     ## -- harvest results -- ##
+           ## -- harvest results -- ##
       # bind
-        baseline_bio %<>%
-          left_join(fish_data_table)
+        baseline_bio <- fish_current_values %>%
+          dplyr::left_join(
+            baseline_bio %>%
+              dplyr::ungroup() %>%
+              dplyr::select(eco_rgn, fish, baseline_mean, baseline_sd, baseline_random),
+            by = c("eco_rgn", "fish")
+          )
 
       # calculate rel severity max
         baseline_bio_max <-
           baseline_bio %>%
-            mutate(relative_severity = 100 * (baseline_random - current_den) /
+            mutate(relative_severity = 100 * (baseline_random - current_biom) /
                                        (baseline_random - threshold_ref_max)) %>%
             mutate(Method = "ref_max")
 
       # calculate rel severity min
         baseline_bio_min <-
           baseline_bio %>%
-            mutate(relative_severity = 100 * (baseline_random - current_den) /
+            mutate(relative_severity = 100 * (baseline_random - current_biom) /
                                    (baseline_random - threshold_ref_min)) %>%
             mutate(Method = "ref_min")
 
 
      ## -- combine objects -- ##
+        baseline_bio <- baseline_bio %>%
+          mutate(
+            relative_severity = NA_real_,
+            Method = NA_character_
+          )
       # link
-        baseline_bio %<>%
-          bind_rows(baseline_bio_max,
-                    baseline_bio_min)
+        baseline_bio <- baseline_bio %>%
+          bind_rows(baseline_bio_max, baseline_bio_min)
+        
+        baseline_bio <- baseline_bio %>%
+          filter(Method %in% c("ref_max", "ref_min"))
 
       # bound by 0 and 100
         baseline_bio %<>%
           mutate(relative_severity = relative_severity %>% scales::rescale(to = c(0, 100)))
+        
+        
+        # set iteration & method
+        baseline_bio %<>%
+          mutate(Iteration = i)
 
      ## -- determine severity status -- ##
       # set proportion of stations in each category of relative severity
@@ -260,7 +252,7 @@
 ## 4. Review results
 ##
   # summarise
-    create_criterion_d_biotic_disruption_key_fish_consumers %>%
+    a <- create_criterion_d_biotic_disruption_key_fish_consumers %>%
       group_by(Ecoregion,
                fish,
                Method,

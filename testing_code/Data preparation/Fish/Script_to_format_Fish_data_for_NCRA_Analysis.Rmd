@@ -541,6 +541,13 @@ save(baseline_comoros, file = "../../../data_intermediate/Criteria_D_fish_baseli
 current_values <- Fish_NCRA_complete %>%
   dplyr::filter(Year >= "2016")
 
+# Rename ecoregions
+current_values <- current_values %>%
+  mutate(Eco_region = recode(Eco_region,
+                             "Mwali" = "Moheli Island",
+                             "Ndzuani" = "Anjoun Island",
+                             "Ngazidja" = "Grand Comore Island"))
+
 # Create site_id
 current_values <- current_values %>%
   mutate(
@@ -575,35 +582,52 @@ recent_biom <- biomass_info %>%
   filter(Year == recent_year) %>%
   dplyr::select(site_id, recent_biom = avg_biom, family)
 
-# Prepare threshold data
+# Prepare thresholds including both max and min
 thresholds <- baseline_comoros %>%
   mutate(
     threshold_ref_max = case_when(
       fish == "Scarinae" ~ baseline_mean * 0.1,
       fish == "Epinephelidae" ~ baseline_mean * 0.2,
       TRUE ~ NA_real_
+    ),
+    threshold_ref_min = case_when(
+      fish == "Scarinae" ~ baseline_mean * 0.01,
+      fish == "Epinephelidae" ~ baseline_mean * 0.01,
+      TRUE ~ NA_real_
     )
   ) %>%
-  dplyr::select(fish, threshold_ref_max)
+  dplyr::select(fish, threshold_ref_max, threshold_ref_min)
 
+# Join with fish_current_values BEFORE recoding fish names
 fish_current_values <- current_values %>%
   dplyr::select(site_id, Eco_region, family) %>%
-  distinct() %>%  # keep only one row per site_id/ecoregion/fish
+  distinct() %>%
   left_join(current_biom, by = c("site_id", "Eco_region", "family")) %>%
   left_join(recent_biom, by = c("site_id", "family")) %>%
   left_join(year_info, by = "site_id") %>%
   rename(eco_rgn = Eco_region, fish = family) %>%
   left_join(thresholds, by = "fish") %>%
+
+  # Recode fish names after all joins
   mutate(
-    threshold_ref_min = NA,
     fish = recode(fish,
                   "Epinephelidae" = "Groupers",
                   "Scarinae" = "Parrotfish")
   ) %>%
   dplyr::select(eco_rgn, site_id, first_year, recent_year,
-         current_biom, recent_biom,
-         threshold_ref_max, threshold_ref_min, fish) %>%
-  distinct()  # <- this line ensures final output has no duplicates
+                current_biom, recent_biom,
+                threshold_ref_max, threshold_ref_min, fish) %>%
+  distinct()
+
+# Add National datase
+# Duplicate and modify the eco_rgn to "National"
+national_values <- fish_current_values %>%
+  mutate(eco_rgn = "National")
+
+# Bind to original dataframe
+fish_current_values <- bind_rows(fish_current_values, national_values)
+
+
 
 
 # Save file
