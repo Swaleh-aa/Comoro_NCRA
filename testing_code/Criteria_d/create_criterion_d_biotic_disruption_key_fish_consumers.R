@@ -94,6 +94,28 @@
     # #   fish <fct>
     # # ℹ Use `print(n = ...)` to see more rows
 
+  # review data table
+    fish_current_values
+# # A tibble: 170 × 9
+   # eco_rgn       site_id     first_year recent_year current_biom
+   # <chr>         <chr>            <dbl>       <dbl>        <dbl>
+ # 1 Moheli Island Comoros_Mo…       2016        2016         74  
+ # 2 Moheli Island Comoros_Mo…       2016        2016         12  
+ # 3 Moheli Island Comoros_Mo…       2016        2016         44  
+ # 4 Moheli Island Comoros_Mo…       2016        2016         64  
+ # 5 Moheli Island Comoros_Mo…       2016        2016         20  
+ # 6 Moheli Island Comoros_Mo…       2016        2016         38  
+ # 7 Moheli Island Comoros_Mo…       2016        2018        167. 
+ # 8 Moheli Island Comoros_Mo…       2016        2018         45.8
+ # 9 Moheli Island Comoros_Mo…       2016        2016         86  
+# 10 Moheli Island Comoros_Mo…       2016        2016         13  
+# # ℹ 160 more rows
+# # ℹ 4 more variables: recent_biom <dbl>,
+# #   threshold_ref_max <dbl>, threshold_ref_min <dbl>,
+# #   fish <fct>
+# # ℹ Use `print(n = ...)` to see more rows
+
+
 ##
 ## 3. Evaluate criterion
 ##
@@ -115,7 +137,7 @@
  ##      be analysed independently.                  -- ##
 
   # create empty object to hold results
-    create_criterion_d_biotic_disruption_key_fish_consumers <- tibble()
+    criterion_d_biotic_disruption_key_fish_consumers <- tibble()
 
   # set seed for reproducibility
     set.seed(66)
@@ -241,7 +263,7 @@
 
      ## -- harvest results -- ##
       # combine
-        create_criterion_d_biotic_disruption_key_fish_consumers %<>%
+        criterion_d_biotic_disruption_key_fish_consumers %<>%
           bind_rows(baseline_bio)
 
 
@@ -251,11 +273,38 @@
 ##
 ## 4. Review results
 ##
+  # have a look
+    criterion_d_biotic_disruption_key_fish_consumers
+# # A tibble: 12,000 × 12
+   # Ecoregion        fish  Method Iteration rel_sev_30 rel_sev_50
+   # <chr>            <fct> <chr>      <dbl>      <dbl>      <dbl>
+ # 1 Anjoun Island    Parr… ref_m…         1        0         5.26
+ # 2 Anjoun Island    Parr… ref_m…         1        0        15.8 
+ # 3 Anjoun Island    Grou… ref_m…         1        0         0   
+ # 4 Anjoun Island    Grou… ref_m…         1        0         5.56
+ # 5 Grand Comore Is… Parr… ref_m…         1        0        18.2 
+ # 6 Grand Comore Is… Parr… ref_m…         1        0        54.5 
+ # 7 Grand Comore Is… Grou… ref_m…         1        0        27.3 
+ # 8 Grand Comore Is… Grou… ref_m…         1       18.2      27.3 
+ # 9 Moheli Island    Parr… ref_m…         1       15.4      53.8 
+# 10 Moheli Island    Parr… ref_m…         1       30.8      46.2 
+# # ℹ 11,990 more rows
+# # ℹ 6 more variables: rel_sev_80 <dbl>, status_30 <dbl>,
+# #   status_50 <dbl>, status_80 <dbl>, max_threat <dbl>,
+# #   status <chr>
+# # ℹ Use `print(n = ...)` to see more rows
+
   # summarise
+<<<<<<< HEAD
     create_criterion_iteration_summary_fish <- create_criterion_d_biotic_disruption_key_fish_consumers %>%
+=======
+    a <- 
+    criterion_d_biotic_disruption_key_fish_consumers %>%
+>>>>>>> d06fe93b61794dd34527508410236fb9ad8c523f
       group_by(Ecoregion,
                fish,
                Method,
+               # Iteration,
                status) %>%
       summarise(n_categories = n()) %>%
       mutate(percent = 100 * n_categories / sum(n_categories))
@@ -283,11 +332,21 @@
 ##
 ## 5. Generate outputs
 ##
+<<<<<<< HEAD
   save(create_criterion_d_biotic_disruption_key_fish_consumers,
          file = "data_intermediate/Criteria_D_RS/create_criterion_d_biotic_disruption_key_fish_consumers.rda")
   
   save(create_criterion_iteration_summary_fish,
        file = "data_intermediate/Criteria_D_RS/create_criterion_d_iterations_fish.rda")
+=======
+  # point to save locale
+    save_locale <- "data_intermediate/criteria/"
+
+  # save to file
+    save(criterion_d_biotic_disruption_key_fish_consumers,
+      file = paste0(save_locale, "criterion_d_biotic_disruption_key_fish_consumers.rda"))
+
+>>>>>>> d06fe93b61794dd34527508410236fb9ad8c523f
 
   
 ##
@@ -305,5 +364,5 @@
        threat_conversions)
 
   # remove core objects
-    rm(create_criterion_d_biotic_disruption_key_fish_consumers)
+    rm(criterion_d_biotic_disruption_key_fish_consumers)
 
