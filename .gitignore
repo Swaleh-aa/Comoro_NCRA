@@ -1,4 +1,32 @@
-.Rproj.user
+# History files
 .Rhistory
+.Rapp.history
+
+# Temporary files
+~*
+*~
+
+# Session Data files
 .RData
 .Ruserdata
+
+# Example code in package build process
+*-Ex.R
+
+# Output files from R CMD build
+/*.tar.gz
+
+# Output files from R CMD check
+/*.Rcheck/
+
+# RStudio files
+.Rproj.user
+*.Rproj
+
+## pesky macintosh files
+*.DS_Store
+*/.DS_Store
+**/.DS_Store
+***/.DS_Store
+.Rproj.user
+
