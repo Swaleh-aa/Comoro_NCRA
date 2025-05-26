@@ -121,7 +121,7 @@
 ##
   # set iteration levels
     i_min <- 1
-    i_max <- 750
+    i_max <- 1000
 
   # set iteration interval
     i_interval <- 1
@@ -327,7 +327,7 @@
 ##
 ## 5. Generate outputs
 ##
-  save(create_criterion_d_biotic_disruption_key_fish_consumers,
+  save(criterion_d_biotic_disruption_key_fish_consumers,
          file = "data_intermediate/Criteria_D_RS/create_criterion_d_biotic_disruption_key_fish_consumers.rda")
   
   save(create_criterion_iteration_summary_fish,

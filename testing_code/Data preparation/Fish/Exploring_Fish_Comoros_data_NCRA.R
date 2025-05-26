@@ -300,30 +300,38 @@ ggsave("../figures/Fish/Explore_Regional_Management_Biomass_Distribution_Familie
 
 load("data_intermediate/create_criterion_d_iterations_fish.rda")
 
+# Combine NT and LC into "NT/LC"
+create_criterion_iteration_summary_fish$status <- as.character(create_criterion_iteration_summary_fish$status)
+create_criterion_iteration_summary_fish$status[create_criterion_iteration_summary_fish$status %in% c("NT", "LC")] <- "NT/LC"
+
 create_criterion_iteration_summary_fish$status <- factor(
   create_criterion_iteration_summary_fish$status,
-  levels = c("NT","LC","VU","EN","CR")
+  levels = c("NT/LC","VU","EN","CR")
 )
+
+create_criterion_iteration_summary_fish <- create_criterion_iteration_summary_fish %>%
+  mutate(Method = recode(Method,
+                         "ref_max" = "Initial_max",
+                         "ref_min" = "Initial_min"))
 
 # Create the plot
 ggplot(create_criterion_iteration_summary_fish, 
        aes(x = fish, y = percent, fill = status)) +
   geom_bar(stat = "identity", position = position_dodge(width = 0.8), width = 0.7) +
   scale_fill_manual(values = c(
-    "CR" = "red",
-    "EN" = "orange",
-    "VU" = "yellow",
-    "LC" = "#1a9641",
-    "NT" = "green"
+    "CR"    = "red",
+    "EN"    = "orange",
+    "VU"    = "yellow",
+    "NT/LC" = "#1a9641"
   )) +
+  labs(y = "Percent iterations") +
   facet_grid(Method ~ Ecoregion) +
-  labs(y = "Percent") +
   theme_bw() +
-  theme(axis.title = element_blank())
+  theme(axis.title.x = element_blank())
 
 
 ggsave("figures/Fish/Explore_iterations_subnational_Families.png", width = 10, height = 6, dpi = 300)
-
+ 
 
 
 

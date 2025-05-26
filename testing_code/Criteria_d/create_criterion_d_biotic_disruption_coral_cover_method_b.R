@@ -100,7 +100,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     i_max <- 1e3
 
   # set iteration interval
-    i_interval <- 10
+    i_interval <- 1
 
   # create empty object to hold results
     criterion_d_biotic_disruption_coral_cover_method_b <- tibble()
@@ -231,7 +231,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
 ## 4. Review results
 ##
   # summarise
-    criterion_d_biotic_disruption_coral_cover_method_b %>%
+    create_criterion_iteration_summary_HC <- criterion_d_biotic_disruption_coral_cover_method_b %>%
       group_by(Ecoregion,
                status) %>%
       summarise(n_categories = n()) %>%
@@ -293,24 +293,26 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
                            "Memboimboini" = "Memboiboini",
                            "Mitsamiuli"   = "Mitsamiouli"))
     
+    # Check for duplicates in geofile
+    geofile %>%
+      group_by(Proposed_Site) %>%
+      tally() %>%
+      filter(n > 1)
+    
+    geofile_clean <- geofile %>%
+      distinct(Proposed_Site, .keep_all = TRUE)
+    
     dat <- dat %>%
-      dplyr::left_join(
-        geofile %>%
+      left_join(
+        geofile_clean %>% 
           dplyr::select(Proposed_Site, Latitude_old, Longitude_old),
         by = c("Site" = "Proposed_Site")
       ) %>%
-      dplyr::mutate(
+      mutate(
         lat = Latitude_old,
         long = Longitude_old
       ) %>%
       dplyr::select(-Latitude_old, -Longitude_old)
-    
-    # add missing
-    dat <- dat %>%
-      dplyr::mutate(
-        lat = ifelse(Site == "Itsoundzou", -11.873187, lat),
-        long = ifelse(Site == "Itsoundzou", 43.38665, long)
-      )
     
     
     
@@ -325,6 +327,9 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     
     save(dat,
          file = "data_intermediate/Criteria_D_RS/RS_biotic_disruption_HC.rda")
+    
+    save(create_criterion_iteration_summary_HC,
+         file = "data_intermediate/Criteria_D_RS/create_criterion_iteration_summary_HC.rda")
 
 
 
