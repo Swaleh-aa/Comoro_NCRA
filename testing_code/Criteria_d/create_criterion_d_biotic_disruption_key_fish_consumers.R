@@ -121,7 +121,7 @@
 ##
   # set iteration levels
     i_min <- 1
-    i_max <- 1000
+    i_max <- 1500
 
   # set iteration interval
     i_interval <- 1
