@@ -1,37 +1,74 @@
 ##
-##  Name:       create_criterion_d_biotic_disruption_coral-cover-method-b.R
+##  Name:       Check_compartment_relations.R
 ##
-##  Objective:  Standardise & format data for analysing criterion D:
-##                using coral cover method b
+##  Objective:  Assess relationships among HC, AMAC:HC Ratio, 
+##              Parrotfish and Grouper biomass as criteria D indicators.
 ##
-##  Approach:   Method a uses average hard coral cover for each 
-##                Ecoregion to calculate relative severity.
+##  Approach:   Method a uses average trend values for all the compartment.
+##            1. 
+##            2.
+##              
 ##
-##              Import raw data from gcrmn regional surveys from 
-##                the Western Indian Ocean, groom and
-##                apply criteria from collapse value:
-##
-##              Output saved as *.rda
+##              Output saved as *.rda and graphs
 ##
 ##
 ##  Authors:    Swaleh Aboud
 ##              CORDIO East Africa
 ##
-##  Date:       2025-05-23
+##  Date:       2025-05-27
 ##
 
-##  Notes:      1. Suspect there is an error with the baseline sd
-##                   for coral cover.  Should test with recalculation. [ fs: 2024-04-30 ]
-##              2. Need to evaluate relative severity corrections and
-##                   threat assignments with mishal's update    [fs: 2024-05-01 ]
+##  Notes:      
 
 
 ##
 ## 1. Set up
 ##
- ## -- call to criterion d data table -- ##
-load("creation_code/Exploration/Crit_D_HC_data_table.RDA")
-load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
+ ## -- call data -- ##
+load("data_intermediate/Complete_comoros_data.RDA") # HC and AMAC
+load("data_intermediate/Fish_NCRA_dataset_2025.RDA")
+
+## 2. Format Datasets
+## 2a. Benthic
+# Recode "ALG" and "Algae" as "Macro-algae"
+comoros_data_clean <- comoros_data %>%
+  mutate(level1_code = case_when(
+    level1_code %in% c("ALG", "Algae") ~ "Macro-algae",
+    TRUE ~ level1_code
+  ))
+
+# Filter to keep only "Hard coral" and "Macro-algae"
+comoros_data_filtered <- comoros_data_clean %>%
+  filter(level1_code %in% c("Hard coral", "Macro-algae"))
+
+# Define columns to group by
+group_cols <- setdiff(names(comoros_data_filtered), 
+                      c("Management_level", "Management_type", "Depth..m.", 
+                        "Latitude", "Longitude", "number_replicates", 
+                        "Method", "Observer", "sd", "se", "mean_cover"))
+
+# Summarise data by group (you can adjust this as needed)
+comoros_data_summary <- comoros_data_filtered %>%
+  group_by(across(all_of(group_cols))) %>%
+  summarise(
+    mean_cover = sum(mean_cover, na.rm = TRUE),
+    sd = sqrt(sum(sd^2, na.rm = TRUE)),  # Combine SDs conservatively
+    se = sqrt(sum(se^2, na.rm = TRUE)),  # Combine SEs conservatively
+    .groups = "drop"
+  )
+
+## 2b. Fish
+# Remove rows where Eco_region is "Reference"
+Fish_NCRA_filtered <- Fish_NCRA_complete %>%
+  filter(Eco_region != "Reference")
+
+# Format columns
+Fish_NCRA_clean <- Fish_NCRA_filtered %>%
+  dplyr::select(-c(Site, `sub-national`, Eco_region, Management_level, Station, Station_corrected)) %>%
+  rename(Site = site_corrected)
+
+## 2c. merge two dataset
+
 
 
 ##
@@ -39,19 +76,19 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
 ## 
   # review criterion d data table
 
-      HC_current <- HC_current %>%
+      MaCoR_current <- MaCoR_current %>%
         mutate(ecoregion = recode(ecoregion,
                             "Moheli island" = "Moheli Island",
                             "Grand Comore" = "Grand Comore Island"))
       # Add National value
       # Create new rows with ecoregion changed to "National"
-      national_rows <- HC_current %>%
+      national_rows <- MaCoR_current %>%
         mutate(ecoregion = "National")
       
       # Combine original data with national rows
-      HC_current <- bind_rows(HC_current, national_rows)
+      MaCoR_current <- bind_rows(MaCoR_current, national_rows)
       
-    HC_current
+      MaCoR_current
     # # A tibble: 52 × 11
     # # Groups:   ecoregion, Location [13]
     # ecoregion      Location Site   first_year recent_year no_years recent_cover
@@ -74,23 +111,24 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
   # review of hard coral baseline data
     # Select for HC
     # Baseline
-    baseline_HC_selected <- 
+    baseline_MaCoR_selected <- 
       baseline_comoros %>%
       filter(area %in% c("regional")) %>%
-      filter(group %in% c("Hard coral")) %>%
+      filter(group %in% c("MaCoR")) %>%
       dplyr::select(ecoregion,
                     group, 
                     area, 
                     baseline_cover = mean,
                     baseline_sd = sd)
-    baseline_HC_selected
+    
+    baseline_MaCoR_selected
     # A tibble: 4 × 5
-    # ecoregion           group      area     baseline_cover baseline_sd
-    # <chr>               <chr>      <chr>             <dbl>       <dbl>
-    # 1 Anjouan Island      Hard coral regional             44        18.1
-    # 2 Grand Comore Island Hard coral regional             44        18.1
-    # 3 Moheli Island       Hard coral regional             44        18.1
-    # 4 National            Hard coral regional             44        18.1
+    # ecoregion           group area     baseline_cover baseline_sd
+    # <chr>               <chr> <chr>             <dbl>       <dbl>
+    # 1 Anjouan Island      MaCoR regional            0.2         0.1
+    # 2 Grand Comore Island MaCoR regional            0.2         0.1
+    # 3 Moheli Island       MaCoR regional            0.2         0.1
+    # 4 National            MaCoR regional            0.2         0.1
 
 ##
 ## 3. Evaluate criterion
@@ -103,7 +141,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     i_interval <- 1
 
   # create empty object to hold results
-    criterion_d_biotic_disruption_coral_cover_method_b <- tibble()
+    criterion_d_biotic_disruption_MaCoR_method_b <- tibble()
 
   # loop through iterations # i=10  ## -- for testing -- ##
         for(i in seq(from = i_min,
@@ -115,10 +153,10 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
         set.seed(i + 81)
 
       # randomly assign baseline values
-          dat <- HC_current %>%
+          dat <- MaCoR_current %>%
             dplyr::mutate(Ecoregion = trimws(tolower(ecoregion))) %>%
             dplyr::left_join(
-              baseline_HC_selected %>%
+              baseline_MaCoR_selected %>%
                 dplyr::mutate(Ecoregion = trimws(tolower(ecoregion))) %>%
                 dplyr::select(Ecoregion, baseline_cover, baseline_sd),
               by = "Ecoregion"
@@ -166,7 +204,8 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
       # correct rel severity levels
         dat2 %>%
           mutate(rel_30 = (rel_sev_30 + rel_sev_50 + rel_sev_80),
-                 rel_50 = (rel_sev_50 + rel_sev_80))
+                 rel_50 = (rel_sev_50 + rel_sev_80),
+                 rel_80 = (rel_sev_80))
 # # A tibble: 3 × 6
   # Ecoregion           rel_sev_30 rel_sev_50 rel_sev_80 rel_30 rel_50
   # <chr>                    <dbl>      <dbl>      <dbl>  <dbl>  <dbl>
@@ -177,7 +216,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
 
      ## -- assign threat status -- ##
       # set status
-        dat2 %<>%
+        dat3 <- dat2 %>%
           mutate(status_30 = ifelse(rel_sev_30 >= 80 & rel_sev_30 <= 100, 2,        NA),
                  status_50 = ifelse(rel_sev_50 >= 80 & rel_sev_50 <= 100, 3,        NA),
                  status_50 = ifelse(rel_sev_50 >= 50 & rel_sev_50 < 80,   2, status_50),
@@ -186,14 +225,14 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
                  status_80 = ifelse(rel_sev_80 >= 30 & rel_sev_80 < 50,   2, status_80))
 
       # set nas to 1
-        dat2 %<>%
+        dat3 %<>%
           mutate(status_30 = ifelse(is.na(status_30), 1, status_30),
                  status_50 = ifelse(is.na(status_50), 1, status_50),
                  status_80 = ifelse(is.na(status_80), 1, status_80))
 
      ## -- pick most severe categories -- ##
       # set max from status categories
-        dat2 %<>%
+        dat3 %<>%
          mutate(max_threat = pmax(status_30, 
                                   status_50, 
                                   status_80))
@@ -210,18 +249,18 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
                               5,    "CO")
 
       # convert threat values
-        dat2 %<>%
+        dat3 %<>%
           left_join(threat_conversions %>%
                       rename(max_threat = threat_value))
 
 
       # set iteration
-        dat2 %<>%
+        dat3 %<>%
           mutate(Iteration = i)
 
       # harvest results
-        criterion_d_biotic_disruption_coral_cover_method_b %<>%
-          bind_rows(dat2)
+        criterion_d_biotic_disruption_MaCoR_method_b %<>%
+          bind_rows(dat3)
 
 
       }
@@ -231,7 +270,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
 ## 4. Review results
 ##
   # summarise
-    create_criterion_iteration_summary_HC <- criterion_d_biotic_disruption_coral_cover_method_b %>%
+    create_criterion_iteration_summary_MaCoR <- criterion_d_biotic_disruption_MaCoR_method_b %>%
       group_by(Ecoregion,
                status) %>%
       summarise(n_categories = n()) %>%
@@ -248,11 +287,11 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     # 4 moheli island       NT/LC           100     100
     
     # Summary for ecoregion - criteria D
-    criterion_d_biotic_disruption_HC <- criterion_d_biotic_disruption_coral_cover_method_b %>%
+    criterion_d_biotic_disruption_MaCoR <- criterion_d_biotic_disruption_MaCoR_method_b %>%
       filter(Iteration == 1000) %>%
       distinct()
     
-    criterion_d_biotic_disruption_HC <- criterion_d_biotic_disruption_HC %>%
+    criterion_d_biotic_disruption_MaCoR <- criterion_d_biotic_disruption_MaCoR %>%
       mutate(Ecoregion = str_to_title(Ecoregion))
     
     # Summary for sites - RS
@@ -275,7 +314,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     # add ecoregion criteria D results
     dat <- dat %>%
       dplyr::left_join(
-        criterion_d_biotic_disruption_HC %>%
+        criterion_d_biotic_disruption_MaCoR %>%
           dplyr::select(Ecoregion, status) %>%
           dplyr::rename(status_ecoregion = status),
         by = "Ecoregion"
@@ -293,26 +332,24 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
                            "Memboimboini" = "Memboiboini",
                            "Mitsamiuli"   = "Mitsamiouli"))
     
-    # Check for duplicates in geofile
-    geofile %>%
-      group_by(Proposed_Site) %>%
-      tally() %>%
-      filter(n > 1)
-    
-    geofile_clean <- geofile %>%
-      distinct(Proposed_Site, .keep_all = TRUE)
-    
     dat <- dat %>%
-      left_join(
-        geofile_clean %>% 
+      dplyr::left_join(
+        geofile %>%
           dplyr::select(Proposed_Site, Latitude_old, Longitude_old),
         by = c("Site" = "Proposed_Site")
       ) %>%
-      mutate(
+      dplyr::mutate(
         lat = Latitude_old,
         long = Longitude_old
       ) %>%
       dplyr::select(-Latitude_old, -Longitude_old)
+    
+    # add missing
+    dat <- dat %>%
+      dplyr::mutate(
+        lat = ifelse(Site == "Itsoundzou", -11.873187, lat),
+        long = ifelse(Site == "Itsoundzou", 43.38665, long)
+      )
     
     
     
@@ -322,14 +359,14 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
 ##
   
   # save to file
-    save(criterion_d_biotic_disruption_HC,
-         file = "data_intermediate/Criteria_D_RS/criterion_d_biotic_disruption_HC.rda")
+    save(criterion_d_biotic_disruption_MaCoR,
+         file = "data_intermediate/Criteria_D_RS/criterion_d_biotic_disruption_MaCoR.rda")
     
     save(dat,
-         file = "data_intermediate/Criteria_D_RS/RS_biotic_disruption_HC.rda")
+         file = "data_intermediate/Criteria_D_RS/RS_biotic_disruption_MaCoR.rda")
     
-    save(create_criterion_iteration_summary_HC,
-         file = "data_intermediate/Criteria_D_RS/create_criterion_iteration_summary_HC.rda")
+    save(create_criterion_iteration_summary_MaCoR,
+         file = "data_intermediate/Criteria_D_RS/create_criterion_iteration_summary_MaCoR.rda")
 
 
 

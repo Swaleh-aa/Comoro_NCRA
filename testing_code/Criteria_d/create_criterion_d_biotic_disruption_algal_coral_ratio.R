@@ -101,7 +101,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     i_max <- 1e3
 
   # set iteration interval
-    i_interval <- 10
+    i_interval <- 1
 
   # create empty object to hold results
     criterion_d_biotic_disruption_MaCoR_method_b <- tibble()
@@ -233,7 +233,7 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
 ## 4. Review results
 ##
   # summarise
-    criterion_d_biotic_disruption_MaCoR_method_b %>%
+    create_criterion_iteration_summary_MaCoR <- criterion_d_biotic_disruption_MaCoR_method_b %>%
       group_by(Ecoregion,
                status) %>%
       summarise(n_categories = n()) %>%
@@ -327,6 +327,9 @@ load("creation_code/Exploration/Criterion_D_hard_coral_baseline_comoros.RDA")
     
     save(dat,
          file = "data_intermediate/Criteria_D_RS/RS_biotic_disruption_MaCoR.rda")
+    
+    save(create_criterion_iteration_summary_MaCoR,
+         file = "data_intermediate/Criteria_D_RS/create_criterion_iteration_summary_MaCoR.rda")
 
 
 
