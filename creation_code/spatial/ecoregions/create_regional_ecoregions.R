@@ -22,7 +22,7 @@
 ##
  ## -- call to global ecoregions -- ##
   # point to data locale
-    data_locale <- "data_raw/spatial/shp/marine_ecoregions/"
+    data_locale <- "data_raw/spatial/"
 
   # point to data file
     data_file <- "meow_ecos.shp"

@@ -23,6 +23,14 @@
 ##
 ## 1. Set up
 ##
+ ## -- call to coastline -- ##
+  # point to data locale
+    data_locale <- "data_intermediate/geophysical/coastline/"
+
+  # load coastline
+    load(paste0(data_locale, "regional_coastline.rda"))
+
+
  ## -- use sites based on fish sites -- ##
   # point to data locale
     data_locale <- "data_raw/"
@@ -67,6 +75,25 @@
 # [1] "Kenya"          "Tanzania"       "Grand Comore"  
 # [4] "Moheli island"  "Sychelles"      "Anjouan Island"
 
+ ## -- create spatial object -- ##
+  # create sector list
+    sectors_of_interest <-
+      c("Grand Comore",
+        "Moheli island",
+        "Anjouan Island")
+
+  # create spatial object
+    fish_sites_comoros <-
+      fish_sites %>%
+        dplyr::filter(Sector %in% sectors_of_interest) %>%
+        dplyr::filter(!Longitude %>% is.na(),
+                      !Latitude  %>% is.na()) %>%
+        dplyr::select(Site,
+                      Year,
+                      Longitude,
+                      Latitude) %>%
+        st_as_sf(coords = c("Longitude", "Latitude"),
+                 crs = 4326)
 
  ## -- link to coastline for areas of assessment -- ##
   # create object
@@ -94,7 +121,9 @@
        save_locale)
 
   # remove intermediate objects
-    rm(fish_sites)
+    rm(fish_sites,
+       sectors_of_interest,
+       fish_sites_comoros)
 
   # remove core objects
     rm(areas_of_assessment)

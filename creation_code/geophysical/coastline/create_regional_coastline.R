@@ -90,7 +90,7 @@
       paste0(data_locale, data_file) %>%
       read_sf()
 
- ## -- remove reef downloads -- ##
+ ## -- remove coastline downloads -- ##
   # remove temp directory
     paste0(temp_directory, "GSHHS_shp") %>%
       fs::dir_delete()
@@ -105,12 +105,21 @@
 ##
   # have a look
     ecoregion_list
+ # [1] "Central Somali Coast"            
+ # [2] "Northern Monsoon Current Coast"  
+ # [3] "East African Coral Coast"        
+ # [4] "Seychelles"                      
+ # [5] "Cargados Carajos/Tromelin Island"
+ # [6] "Mascarene Islands"               
+ # [7] "Southeast Madagascar"            
+ # [8] "Western and Northern Madagascar" 
+ # [9] "Bight of Sofala/Swamp Coast"     
+# [10] "Delagoa"  
 
   # extract relevant ecoregions
     regional_ecoregions <-
       meow_ecos %>%
         dplyr::filter(ECOREGION %in% ecoregion_list)
-
 
  ## -- clip to regional ecoregions -- ##
   # set s2 to false
