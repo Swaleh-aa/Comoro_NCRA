@@ -121,7 +121,7 @@
 ##
   # set iteration levels
     i_min <- 1
-    i_max <- 1500
+    i_max <- 1000
 
   # set iteration interval
     i_interval <- 1
@@ -322,6 +322,18 @@
 # 10 Comoros   parrot  ref_max CR              523  69.7
 # # ℹ 112 more rows
 # # ℹ Use `print(n = ...)` to see more rows
+    
+    
+    
+    # Summary for ecoregion - criteria D
+    criterion_d_iteration_refmax_fish <- create_criterion_iteration_summary_fish %>%
+      filter(Method == "ref_max") %>%
+      distinct()
+    
+    write.csv(criterion_d_iteration_refmax_fish, "data_intermediate/Summary_percentage_iteration_ref_max.csv")
+    
+    # First Approach - Weighted Threat Score
+    
 
 
 ##
