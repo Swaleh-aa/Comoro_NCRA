@@ -303,6 +303,24 @@
                status) %>%
       summarise(n_categories = n()) %>%
       mutate(percent = 100 * n_categories / sum(n_categories))
+    
+    
+    create_criterion_iteration_summary_fish2 <- criterion_d_biotic_disruption_key_fish_consumers %>%
+      group_by(Ecoregion, fish, Method, status) %>%
+      summarise(
+        n_categories = n(),
+        rel_sev_30 = mean(rel_sev_30, na.rm = TRUE),
+        rel_sev_50 = mean(rel_sev_50, na.rm = TRUE),
+        rel_sev_80 = mean(rel_sev_80, na.rm = TRUE),
+        status_30 = first(status_30),
+        status_50 = first(status_50),
+        status_80 = first(status_80),
+        .groups = "drop"
+      ) %>%
+      group_by(Ecoregion, fish, Method) %>%  # <- group again before percent
+      mutate(percent = 100 * n_categories / sum(n_categories)) %>%
+      ungroup()
+    
 
 # `summarise()` has grouped output by 'Ecoregion', 'fish',
 # 'Method'. You can override using the `.groups` argument.
